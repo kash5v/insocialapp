@@ -62,7 +62,7 @@ export default function Profile() {
       {/* Header */}
       <header className="sticky top-0 z-40 glass-strong border-b border-white/10 backdrop-blur-xl">
         <div className="h-14 px-4 flex items-center justify-between max-w-2xl mx-auto">
-          <h1 className="font-display font-bold text-xl gradient-text">priya.sharma</h1>
+          <h1 className="font-display font-bold text-xl gradient-text">@priya.sharma</h1>
           <div className="flex items-center gap-2">
             <Button size="icon" variant="ghost" className="rounded-full" data-testid="button-settings">
               <Settings className="w-5 h-5" />
