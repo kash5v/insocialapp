@@ -245,7 +245,7 @@ export default function Profile() {
                   data-testid="tab-members"
                 >
                   <Crown className="w-4 h-4" />
-                  Members Only
+                  Members Only Videos
                 </TabsTrigger>
                 <TabsTrigger 
                   value="reposts" 
