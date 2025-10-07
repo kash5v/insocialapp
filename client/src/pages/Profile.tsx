@@ -1,11 +1,14 @@
-import { Settings, Archive, Bookmark, UserPlus, Users, Grid, Heart } from "lucide-react";
+import { Settings, Archive, Bookmark, UserPlus, Users, Grid, Heart, Search } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BottomNavBar from "@/components/BottomNavBar";
 import ThemeToggle from "@/components/ThemeToggle";
+import { useLocation } from "wouter";
 
 export default function Profile() {
+  const [, setLocation] = useLocation();
+  
   const userPosts = [
     { id: 1, imageUrl: "https://images.unsplash.com/photo-1566552881560-0be862a7c445?w=400&h=400&fit=crop", likes: 1234 },
     { id: 2, imageUrl: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&h=400&fit=crop", likes: 892 },
@@ -30,6 +33,14 @@ export default function Profile() {
           <div className="flex items-center gap-2">
             <Button size="icon" variant="ghost" className="rounded-full" data-testid="button-settings">
               <Settings className="w-5 h-5" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setLocation("/search")}
+              data-testid="button-search"
+            >
+              <Search className="w-5 h-5" />
             </Button>
             <ThemeToggle />
           </div>

@@ -1,4 +1,4 @@
-import { Home, Search, Video, PlusCircle, MessageCircle, User } from "lucide-react";
+import { Home, Video, PlusCircle, MessageCircle, User } from "lucide-react";
 import { useLocation } from "wouter";
 
 export default function BottomNavBar() {
@@ -6,7 +6,6 @@ export default function BottomNavBar() {
 
   const tabs = [
     { id: "home", icon: Home, label: "Home", path: "/" },
-    { id: "search", icon: Search, label: "Search", path: "/search" },
     { id: "watch", icon: Video, label: "Watch", path: "/watch" },
     { id: "create", icon: PlusCircle, label: "Create", path: "/create" },
     { id: "messages", icon: MessageCircle, label: "Messages", path: "/messages" },

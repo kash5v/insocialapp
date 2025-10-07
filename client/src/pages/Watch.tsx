@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Play, Heart, MessageCircle, Share2, MoreVertical } from "lucide-react";
+import { Play, Heart, MessageCircle, Share2, MoreVertical, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import BottomNavBar from "@/components/BottomNavBar";
 import ThemeToggle from "@/components/ThemeToggle";
+import { useLocation } from "wouter";
 
 export default function Watch() {
+  const [, setLocation] = useLocation();
+  
   const shortVideos = [
     {
       id: 1,
@@ -54,7 +58,17 @@ export default function Watch() {
       <header className="sticky top-0 z-40 glass-strong border-b border-white/10 backdrop-blur-xl">
         <div className="h-14 px-4 flex items-center justify-between max-w-2xl mx-auto">
           <h1 className="font-display font-bold text-2xl gradient-text">Watch</h1>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setLocation("/search")}
+              data-testid="button-search"
+            >
+              <Search className="w-5 h-5" />
+            </Button>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 

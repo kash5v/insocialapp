@@ -6,9 +6,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import BottomNavBar from "@/components/BottomNavBar";
 import ThemeToggle from "@/components/ThemeToggle";
+import { useLocation } from "wouter";
 
 export default function Messages() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [, setLocation] = useLocation();
 
   const chats = [
     {
@@ -89,6 +91,14 @@ export default function Messages() {
               data-testid="action-new-chat"
             >
               <Plus className="w-5 h-5" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setLocation("/search")}
+              data-testid="button-search"
+            >
+              <Search className="w-5 h-5" />
             </Button>
             <ThemeToggle />
           </div>

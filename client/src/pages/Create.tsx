@@ -1,9 +1,12 @@
-import { Camera, Image as ImageIcon, Music, Video, FileText } from "lucide-react";
+import { Camera, Image as ImageIcon, Music, Video, FileText, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BottomNavBar from "@/components/BottomNavBar";
 import ThemeToggle from "@/components/ThemeToggle";
+import { useLocation } from "wouter";
 
 export default function Create() {
+  const [, setLocation] = useLocation();
+  
   const memories = [
     { id: "1", date: "Jan 15", imageUrl: "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=400&h=400&fit=crop" },
     { id: "2", date: "Feb 3", imageUrl: "https://images.unsplash.com/photo-1533105079780-92b9be482077?w=400&h=400&fit=crop" },
@@ -27,7 +30,17 @@ export default function Create() {
       <header className="sticky top-0 z-40 glass-strong border-b border-white/10 backdrop-blur-xl">
         <div className="h-14 px-4 flex items-center justify-between max-w-2xl mx-auto">
           <h1 className="font-display font-bold text-2xl gradient-text">Create</h1>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setLocation("/search")}
+              data-testid="button-search"
+            >
+              <Search className="w-5 h-5" />
+            </Button>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 

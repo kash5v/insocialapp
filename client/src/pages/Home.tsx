@@ -1,13 +1,17 @@
 import { useState } from "react";
+import { Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import StoryRing from "@/components/StoryRing";
 import FeedPost from "@/components/FeedPost";
 import BottomNavBar from "@/components/BottomNavBar";
 import ThemeToggle from "@/components/ThemeToggle";
+import { useLocation } from "wouter";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("my-feed");
+  const [, setLocation] = useLocation();
 
   const stories = [
     { username: "Your Story", isOwnStory: true, hasStory: false },
@@ -73,7 +77,17 @@ export default function Home() {
           <h1 className="font-display font-bold text-2xl gradient-text">
             INSocial
           </h1>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setLocation("/search")}
+              data-testid="button-search"
+            >
+              <Search className="w-5 h-5" />
+            </Button>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
