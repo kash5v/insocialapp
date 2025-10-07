@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Search, Plus, Camera, MessageSquare, Users, Hash, StickyNote, Phone, PhoneMissed, Star } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Search, Plus, Camera, MessageSquare, Users, Hash, StickyNote, Phone, PhoneMissed, Star, Flame } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,6 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { useLocation } from "wouter";
 
 export default function Messages() {
-  const [searchQuery, setSearchQuery] = useState("");
   const [mainTab, setMainTab] = useState("chat");
   const [chatSubTab, setChatSubTab] = useState("direct");
   const [, setLocation] = useLocation();
@@ -24,6 +22,7 @@ export default function Messages() {
       unreadCount: 3,
       isOnline: true,
       avatarUrl: "https://i.pravatar.cc/150?img=1",
+      streak: 15,
     },
     {
       id: 2,
@@ -34,6 +33,7 @@ export default function Messages() {
       unreadCount: 0,
       isOnline: false,
       avatarUrl: "https://i.pravatar.cc/150?img=2",
+      streak: 7,
     },
   ];
 
@@ -148,24 +148,9 @@ export default function Messages() {
         </div>
       </header>
 
-      {/* Search */}
-      <div className="sticky top-14 z-30 bg-background/80 backdrop-blur-md border-b p-4">
-        <div className="max-w-2xl mx-auto relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search messages..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-11 glass border-white/10"
-            data-testid="search-messages"
-          />
-        </div>
-      </div>
-
       {/* Main Tabs: Chat and Call */}
       <Tabs value={mainTab} onValueChange={setMainTab} className="max-w-2xl mx-auto">
-        <div className="sticky top-[120px] z-20 bg-background/80 backdrop-blur-md border-b">
+        <div className="sticky top-14 z-30 bg-background/80 backdrop-blur-md border-b">
           <TabsList className="w-full justify-start rounded-none h-12 bg-transparent p-0">
             <TabsTrigger 
               value="chat" 
@@ -189,7 +174,7 @@ export default function Messages() {
         {/* Chat Tab Content */}
         <TabsContent value="chat" className="mt-0">
           <Tabs value={chatSubTab} onValueChange={setChatSubTab}>
-            <div className="sticky top-[168px] z-10 bg-background/80 backdrop-blur-md border-b">
+            <div className="sticky top-[62px] z-20 bg-background/80 backdrop-blur-md border-b">
               <TabsList className="w-full justify-start rounded-none h-10 bg-transparent p-0 px-2 overflow-x-auto hide-scrollbar">
                 <TabsTrigger 
                   value="direct" 
@@ -246,7 +231,15 @@ export default function Messages() {
                     </div>
                     <div className="flex-1 text-left">
                       <div className="flex items-center justify-between mb-1">
-                        <h3 className="font-display font-semibold text-foreground">{chat.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-display font-semibold text-foreground">{chat.name}</h3>
+                          {chat.streak && chat.streak > 0 && (
+                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500">
+                              <Flame className="w-3 h-3 text-white" />
+                              <span className="text-xs font-bold text-white">{chat.streak}</span>
+                            </div>
+                          )}
+                        </div>
                         <span className="text-xs text-muted-foreground">{chat.timestamp}</span>
                       </div>
                       <p className="text-sm text-muted-foreground truncate">{chat.lastMessage}</p>
@@ -327,7 +320,7 @@ export default function Messages() {
         {/* Call Tab Content */}
         <TabsContent value="call" className="mt-0">
           <Tabs defaultValue="logs">
-            <div className="sticky top-[168px] z-10 bg-background/80 backdrop-blur-md border-b">
+            <div className="sticky top-[62px] z-20 bg-background/80 backdrop-blur-md border-b">
               <TabsList className="w-full justify-start rounded-none h-10 bg-transparent p-0 px-2">
                 <TabsTrigger 
                   value="logs" 
