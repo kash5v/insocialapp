@@ -86,7 +86,7 @@ export default {
         sans: ["var(--font-sans)"],
         serif: ["var(--font-serif)"],
         mono: ["var(--font-mono)"],
-        display: ["'Plus Jakarta Sans'", "var(--font-sans)"],
+        display: ["var(--font-display)"],
       },
       keyframes: {
         "accordion-down": {
