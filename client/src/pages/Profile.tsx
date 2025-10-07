@@ -1,4 +1,4 @@
-import { Settings, Archive, Bookmark, UserPlus, Users, Grid, Heart, Search, MapPin, Lock, Video, Share2, Crown, Camera } from "lucide-react";
+import { Settings, Archive, Bookmark, UserPlus, Users, Grid, Heart, Search, MapPin, Lock, Video, Share2, Crown, Camera, Tag, List, Film, Play } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -130,32 +130,63 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Memories Section */}
+          {/* Quick Access Tiles */}
           <div className="px-6 pb-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Lock className="w-4 h-4 text-muted-foreground" />
-              <h3 className="font-display font-semibold text-foreground">Memories</h3>
-              <span className="text-xs text-muted-foreground">(Private)</span>
+            <div className="grid grid-cols-3 gap-3">
+              {/* Memories Private Album */}
+              <button
+                className="glass rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover-elevate active-elevate-2 border border-white/10"
+                data-testid="tile-memories"
+              >
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Lock className="w-6 h-6 text-primary" />
+                </div>
+                <span className="text-xs font-medium text-center">Memories</span>
+              </button>
+
+              {/* Archived */}
+              <button
+                className="glass rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover-elevate active-elevate-2 border border-white/10"
+                data-testid="tile-archived"
+              >
+                <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center">
+                  <Archive className="w-6 h-6 text-accent" />
+                </div>
+                <span className="text-xs font-medium text-center">Archived</span>
+              </button>
+
+              {/* Saved */}
+              <button
+                className="glass rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover-elevate active-elevate-2 border border-white/10"
+                data-testid="tile-saved"
+              >
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Bookmark className="w-6 h-6 text-primary" />
+                </div>
+                <span className="text-xs font-medium text-center">Saved</span>
+              </button>
             </div>
+          </div>
+
+          {/* Highlights Section */}
+          <div className="px-6 pb-4">
+            <h3 className="font-display font-semibold text-foreground mb-3">Highlights</h3>
             <ScrollArea className="w-full">
-              <div className="flex gap-2">
-                {memories.map((memory) => (
+              <div className="flex gap-4">
+                {["Travel", "Food", "Fashion", "Tech", "Fitness"].map((highlight) => (
                   <button
-                    key={memory.id}
-                    className="relative w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 hover:opacity-90 transition-opacity"
-                    data-testid={`memory-${memory.id}`}
+                    key={highlight}
+                    className="flex flex-col items-center gap-2 flex-shrink-0"
+                    data-testid={`highlight-${highlight.toLowerCase()}`}
                   >
-                    <img src={memory.imageUrl} alt="" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                    <Lock className="absolute top-2 right-2 w-4 h-4 text-white" />
+                    <div className="w-16 h-16 rounded-full ring-2 ring-primary/30 p-0.5">
+                      <div className="w-full h-full rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                        <span className="text-xl">{highlight[0]}</span>
+                      </div>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{highlight}</span>
                   </button>
                 ))}
-                <button 
-                  className="w-24 h-24 rounded-xl border-2 border-dashed border-muted-foreground/30 flex items-center justify-center flex-shrink-0 hover-elevate active-elevate-2"
-                  data-testid="add-memory"
-                >
-                  <Camera className="w-6 h-6 text-muted-foreground" />
-                </button>
               </div>
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
