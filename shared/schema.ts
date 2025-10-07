@@ -11,9 +11,8 @@ export const users = pgTable("users", {
   isPremium: boolean("is_premium").default(false),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
