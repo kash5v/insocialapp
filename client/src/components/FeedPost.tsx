@@ -1,6 +1,7 @@
 import { Heart, MessageCircle, Send, Bookmark, MoreVertical, Laugh, Frown, Angry, ThumbsUp, Sparkles } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState, useRef, useEffect } from "react";
+import VerificationBadge from "@/components/VerificationBadge";
 
 interface FeedPostProps {
   username: string;
@@ -11,6 +12,8 @@ interface FeedPostProps {
   imageUrl?: string;
   likes: number;
   comments: number;
+  verificationType?: "government" | "professional" | "individual" | null;
+  isPremium?: boolean;
 }
 
 export default function FeedPost({
@@ -22,6 +25,8 @@ export default function FeedPost({
   imageUrl,
   likes,
   comments,
+  verificationType,
+  isPremium = false,
 }: FeedPostProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -104,9 +109,12 @@ export default function FeedPost({
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-display font-semibold text-sm text-foreground" data-testid="post-username">
-              {displayName}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="font-display font-semibold text-sm text-foreground" data-testid="post-username">
+                {displayName}
+              </p>
+              <VerificationBadge verificationType={verificationType} isPremium={isPremium} />
+            </div>
             <p className="text-xs text-muted-foreground">@{username} · {timestamp}</p>
           </div>
         </div>
