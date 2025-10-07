@@ -439,6 +439,25 @@ export default function Messages() {
       </Tabs>
 
       <BottomNavBar />
+
+      {/* FAB - Camera for Chat, New Call for Calls */}
+      {mainTab === "chat" && (
+        <button
+          className="fixed bottom-24 right-6 z-40 w-14 h-14 rounded-full bg-gradient-primary shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-transform"
+          data-testid="fab-camera"
+        >
+          <Camera className="w-6 h-6 text-white" />
+        </button>
+      )}
+
+      {mainTab === "call" && (
+        <button
+          className="fixed bottom-24 right-6 z-40 w-14 h-14 rounded-full bg-gradient-primary shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-transform"
+          data-testid="fab-new-call"
+        >
+          <Phone className="w-6 h-6 text-white" />
+        </button>
+      )}
     </div>
   );
 }

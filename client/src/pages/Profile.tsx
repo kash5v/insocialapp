@@ -1,7 +1,8 @@
-import { Settings, Archive, Bookmark, UserPlus, Users, Grid, Heart, Search } from "lucide-react";
+import { Settings, Archive, Bookmark, UserPlus, Users, Grid, Heart, Search, MapPin, Lock, Video, Share2, Crown, Camera } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import BottomNavBar from "@/components/BottomNavBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useLocation } from "wouter";
@@ -22,6 +23,29 @@ export default function Profile() {
     { id: 1, imageUrl: "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=400&h=400&fit=crop" },
     { id: 2, imageUrl: "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=400&h=400&fit=crop" },
     { id: 3, imageUrl: "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=400&h=400&fit=crop" },
+  ];
+
+  const memories = [
+    { id: 1, imageUrl: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400&h=400&fit=crop" },
+    { id: 2, imageUrl: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=400&fit=crop" },
+    { id: 3, imageUrl: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=400&fit=crop" },
+  ];
+
+  const photos = userPosts;
+  const reels = [
+    { id: 1, imageUrl: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop", views: "12.5K" },
+    { id: 2, imageUrl: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=400&h=400&fit=crop", views: "8.3K" },
+  ];
+  const videos = [
+    { id: 1, imageUrl: "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=400&h=400&fit=crop", duration: "5:23" },
+    { id: 2, imageUrl: "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=400&h=400&fit=crop", duration: "3:45" },
+  ];
+  const reposts = [
+    { id: 1, imageUrl: "https://images.unsplash.com/photo-1533105079780-92b9be482077?w=400&h=400&fit=crop" },
+  ];
+  const membersOnly = [
+    { id: 1, imageUrl: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=400&fit=crop" },
+    { id: 2, imageUrl: "https://images.unsplash.com/photo-1566552881560-0be862a7c445?w=400&h=400&fit=crop" },
   ];
 
   return (
@@ -59,21 +83,29 @@ export default function Profile() {
             </Avatar>
             <div className="flex-1">
               <h2 className="font-display font-bold text-2xl text-foreground mb-1">Priya Sharma</h2>
-              <p className="text-muted-foreground mb-3">Digital Creator | Travel Enthusiast 🌏 | Mumbai 📍</p>
+              <p className="text-muted-foreground mb-1">Digital Creator | Travel Enthusiast 🌏</p>
+              <div className="flex items-center gap-1 text-sm text-muted-foreground mb-3">
+                <MapPin className="w-4 h-4" />
+                <span>Mumbai, India</span>
+              </div>
               
               {/* Stats */}
-              <div className="flex gap-6 mb-4">
+              <div className="flex gap-4 mb-4">
                 <button className="text-center" data-testid="stat-posts">
-                  <div className="font-display font-bold text-xl text-foreground">342</div>
-                  <div className="text-sm text-muted-foreground">Posts</div>
+                  <div className="font-display font-bold text-lg text-foreground">342</div>
+                  <div className="text-xs text-muted-foreground">Posts</div>
                 </button>
                 <button className="text-center" data-testid="stat-followers">
-                  <div className="font-display font-bold text-xl text-foreground">15.4K</div>
-                  <div className="text-sm text-muted-foreground">Followers</div>
+                  <div className="font-display font-bold text-lg text-foreground">15.4K</div>
+                  <div className="text-xs text-muted-foreground">Followers</div>
                 </button>
                 <button className="text-center" data-testid="stat-following">
-                  <div className="font-display font-bold text-xl text-foreground">892</div>
-                  <div className="text-sm text-muted-foreground">Following</div>
+                  <div className="font-display font-bold text-lg text-foreground">892</div>
+                  <div className="text-xs text-muted-foreground">Following</div>
+                </button>
+                <button className="text-center" data-testid="stat-added">
+                  <div className="font-display font-bold text-lg text-foreground">156</div>
+                  <div className="text-xs text-muted-foreground">Added</div>
                 </button>
               </div>
 
@@ -97,43 +129,112 @@ export default function Profile() {
               </div>
             </div>
           </div>
+
+          {/* Memories Section */}
+          <div className="px-6 pb-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Lock className="w-4 h-4 text-muted-foreground" />
+              <h3 className="font-display font-semibold text-foreground">Memories</h3>
+              <span className="text-xs text-muted-foreground">(Private)</span>
+            </div>
+            <ScrollArea className="w-full">
+              <div className="flex gap-2">
+                {memories.map((memory) => (
+                  <button
+                    key={memory.id}
+                    className="relative w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 hover:opacity-90 transition-opacity"
+                    data-testid={`memory-${memory.id}`}
+                  >
+                    <img src={memory.imageUrl} alt="" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                    <Lock className="absolute top-2 right-2 w-4 h-4 text-white" />
+                  </button>
+                ))}
+                <button 
+                  className="w-24 h-24 rounded-xl border-2 border-dashed border-muted-foreground/30 flex items-center justify-center flex-shrink-0 hover-elevate active-elevate-2"
+                  data-testid="add-memory"
+                >
+                  <Camera className="w-6 h-6 text-muted-foreground" />
+                </button>
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          </div>
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="posts" className="w-full">
+        <Tabs defaultValue="photos" className="w-full">
           <div className="sticky top-14 z-30 bg-background/80 backdrop-blur-md border-y">
-            <TabsList className="w-full justify-start rounded-none h-12 bg-transparent p-0">
-              <TabsTrigger 
-                value="posts" 
-                className="flex-1 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
-                data-testid="tab-posts"
-              >
-                <Grid className="w-5 h-5" />
-              </TabsTrigger>
-              <TabsTrigger 
-                value="archive" 
-                className="flex-1 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
-                data-testid="tab-archive"
-              >
-                <Archive className="w-5 h-5" />
-              </TabsTrigger>
-              <TabsTrigger 
-                value="saved" 
-                className="flex-1 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
-                data-testid="tab-saved"
-              >
-                <Bookmark className="w-5 h-5" />
-              </TabsTrigger>
-            </TabsList>
+            <ScrollArea className="w-full">
+              <TabsList className="w-full justify-start rounded-none h-12 bg-transparent p-0 inline-flex">
+                <TabsTrigger 
+                  value="photos" 
+                  className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 gap-2"
+                  data-testid="tab-photos"
+                >
+                  <Grid className="w-4 h-4" />
+                  Photos
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="reels" 
+                  className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 gap-2"
+                  data-testid="tab-reels"
+                >
+                  <Camera className="w-4 h-4" />
+                  Reels
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="videos" 
+                  className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 gap-2"
+                  data-testid="tab-videos"
+                >
+                  <Video className="w-4 h-4" />
+                  Videos
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="reposts" 
+                  className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 gap-2"
+                  data-testid="tab-reposts"
+                >
+                  <Share2 className="w-4 h-4" />
+                  Reposts
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="members" 
+                  className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 gap-2"
+                  data-testid="tab-members"
+                >
+                  <Crown className="w-4 h-4" />
+                  Members
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="archive" 
+                  className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 gap-2"
+                  data-testid="tab-archive"
+                >
+                  <Archive className="w-4 h-4" />
+                  Archive
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="saved" 
+                  className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 gap-2"
+                  data-testid="tab-saved"
+                >
+                  <Bookmark className="w-4 h-4" />
+                  Saved
+                </TabsTrigger>
+              </TabsList>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
           </div>
 
-          <TabsContent value="posts" className="mt-0">
+          <TabsContent value="photos" className="mt-0">
             <div className="grid grid-cols-3 gap-1">
-              {userPosts.map((post) => (
+              {photos.map((post) => (
                 <button
                   key={post.id}
                   className="relative aspect-square overflow-hidden group"
-                  data-testid={`post-${post.id}`}
+                  data-testid={`photo-${post.id}`}
                 >
                   <img src={post.imageUrl} alt="" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -142,6 +243,72 @@ export default function Profile() {
                       <span className="font-semibold">{post.likes.toLocaleString()}</span>
                     </div>
                   </div>
+                </button>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="reels" className="mt-0">
+            <div className="grid grid-cols-3 gap-1">
+              {reels.map((reel) => (
+                <button
+                  key={reel.id}
+                  className="relative aspect-square overflow-hidden group"
+                  data-testid={`reel-${reel.id}`}
+                >
+                  <img src={reel.imageUrl} alt="" className="w-full h-full object-cover" />
+                  <Camera className="absolute top-2 right-2 w-5 h-5 text-white" />
+                  <div className="absolute bottom-2 right-2 text-white text-xs font-semibold bg-black/50 px-2 py-1 rounded">
+                    {reel.views}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="videos" className="mt-0">
+            <div className="grid grid-cols-3 gap-1">
+              {videos.map((video) => (
+                <button
+                  key={video.id}
+                  className="relative aspect-square overflow-hidden group"
+                  data-testid={`video-${video.id}`}
+                >
+                  <img src={video.imageUrl} alt="" className="w-full h-full object-cover" />
+                  <Video className="absolute top-2 right-2 w-5 h-5 text-white" />
+                  <div className="absolute bottom-2 right-2 text-white text-xs font-semibold bg-black/50 px-2 py-1 rounded">
+                    {video.duration}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="reposts" className="mt-0">
+            <div className="grid grid-cols-3 gap-1">
+              {reposts.map((repost) => (
+                <button
+                  key={repost.id}
+                  className="relative aspect-square overflow-hidden group"
+                  data-testid={`repost-${repost.id}`}
+                >
+                  <img src={repost.imageUrl} alt="" className="w-full h-full object-cover" />
+                  <Share2 className="absolute top-2 right-2 w-5 h-5 text-white" />
+                </button>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="members" className="mt-0">
+            <div className="grid grid-cols-3 gap-1">
+              {membersOnly.map((post) => (
+                <button
+                  key={post.id}
+                  className="relative aspect-square overflow-hidden group"
+                  data-testid={`members-${post.id}`}
+                >
+                  <img src={post.imageUrl} alt="" className="w-full h-full object-cover" />
+                  <Crown className="absolute top-2 right-2 w-5 h-5 text-primary" />
                 </button>
               ))}
             </div>

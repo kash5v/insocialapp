@@ -26,17 +26,17 @@
   --sidebar: 250 20% 96%;
   --sidebar-foreground: 260 15% 14%;
   --sidebar-border: 250 18% 90%;
-  --sidebar-primary: 260 85% 58%;
-  --sidebar-primary-foreground: 260 20% 98%;
+  --sidebar-primary: 30 100% 60%;
+  --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 250 18% 90%;
   --sidebar-accent-foreground: 260 15% 15%;
-  --sidebar-ring: 260 85% 58%;
+  --sidebar-ring: 30 100% 60%;
 
   --popover: 0 0% 100%;
   --popover-foreground: 260 15% 15%;
   --popover-border: 250 12% 90%;
 
-  --primary: 260 85% 58%;
+  --primary: 30 100% 60%;
   --primary-foreground: 0 0% 100%;
   
   --secondary: 250 15% 92%;
@@ -45,7 +45,7 @@
   --muted: 250 12% 94%;
   --muted-foreground: 260 8% 45%;
   
-  --accent: 320 75% 58%;
+  --accent: 128 100% 28%;
   --accent-foreground: 0 0% 100%;
   
   --destructive: 0 84% 60%;
@@ -54,9 +54,9 @@
   --input: 250 12% 88%;
   --ring: 260 85% 58%;
   
-  --chart-1: 260 85% 58%;
-  --chart-2: 280 80% 60%;
-  --chart-3: 320 75% 58%;
+  --chart-1: 30 100% 60%;
+  --chart-2: 128 100% 28%;
+  --chart-3: 0 0% 100%;
   --chart-4: 200 85% 55%;
   --chart-5: 340 75% 58%;
 
@@ -109,17 +109,17 @@
   --sidebar: 260 20% 8%;
   --sidebar-foreground: 250 10% 90%;
   --sidebar-border: 260 15% 12%;
-  --sidebar-primary: 260 85% 58%;
-  --sidebar-primary-foreground: 260 20% 98%;
+  --sidebar-primary: 30 100% 60%;
+  --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 260 15% 14%;
   --sidebar-accent-foreground: 250 10% 88%;
-  --sidebar-ring: 260 85% 58%;
+  --sidebar-ring: 30 100% 60%;
 
   --popover: 260 18% 12%;
   --popover-foreground: 250 10% 90%;
   --popover-border: 260 15% 18%;
 
-  --primary: 260 85% 58%;
+  --primary: 30 100% 60%;
   --primary-foreground: 0 0% 100%;
 
   --secondary: 260 12% 18%;
@@ -128,7 +128,7 @@
   --muted: 260 12% 16%;
   --muted-foreground: 250 8% 65%;
 
-  --accent: 320 75% 58%;
+  --accent: 128 100% 28%;
   --accent-foreground: 0 0% 100%;
 
   --destructive: 0 84% 60%;
@@ -137,9 +137,9 @@
   --input: 260 15% 20%;
   --ring: 260 85% 58%;
 
-  --chart-1: 260 85% 65%;
-  --chart-2: 280 80% 68%;
-  --chart-3: 320 75% 65%;
+  --chart-1: 30 100% 65%;
+  --chart-2: 128 100% 35%;
+  --chart-3: 0 0% 100%;
   --chart-4: 200 85% 60%;
   --chart-5: 340 75% 65%;
 
@@ -194,22 +194,37 @@
     border: 1px solid rgba(255, 255, 255, 0.15);
   }
 
-  /* Gradient Text */
+  /* Gradient Text - Indian Tricolor */
   .gradient-text {
-    @apply bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent;
+    background: linear-gradient(90deg, 
+      hsl(30, 100%, 60%) 0%,
+      hsl(0, 0%, 100%) 50%,
+      hsl(128, 100%, 28%) 100%
+    );
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
   .gradient-text-purple {
     @apply bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent;
   }
 
-  /* Gradient Backgrounds */
+  /* Gradient Backgrounds - Indian Tricolor */
   .gradient-bg {
-    @apply bg-gradient-to-br from-primary/20 via-accent/10 to-background;
+    background: linear-gradient(135deg, 
+      hsl(30, 100%, 60%, 0.2) 0%,
+      hsl(0, 0%, 100%, 0.1) 50%,
+      hsl(128, 100%, 28%, 0.1) 100%
+    );
   }
 
   .gradient-primary {
-    @apply bg-gradient-to-r from-primary to-accent;
+    background: linear-gradient(90deg, 
+      hsl(30, 100%, 60%) 0%,
+      hsl(0, 0%, 100%) 50%,
+      hsl(128, 100%, 28%) 100%
+    );
   }
 
   .gradient-card {
@@ -248,9 +263,11 @@
     border-radius: var(--radius);
     padding: 2px;
     background: linear-gradient(90deg, 
-      hsl(var(--primary)), 
-      hsl(var(--accent)), 
-      hsl(var(--primary))
+      hsl(30, 100%, 60%) 0%,
+      hsl(0, 0%, 100%) 25%,
+      hsl(128, 100%, 28%) 50%,
+      hsl(0, 0%, 100%) 75%,
+      hsl(30, 100%, 60%) 100%
     );
     background-size: 200% 200%;
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -259,9 +276,13 @@
     animation: gradient-rotate 3s ease infinite;
   }
 
-  /* Story Ring Gradient */
+  /* Story Ring Gradient - Indian Tricolor */
   .story-ring {
-    background: linear-gradient(45deg, hsl(var(--primary)), hsl(var(--accent)));
+    background: linear-gradient(135deg, 
+      hsl(30, 100%, 60%) 0%,
+      hsl(0, 0%, 100%) 50%,
+      hsl(128, 100%, 28%) 100%
+    );
     padding: 3px;
     border-radius: 50%;
   }

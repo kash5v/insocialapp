@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import StoryRing from "@/components/StoryRing";
+import StoryViewer, { StoryUser } from "@/components/StoryViewer";
 import FeedPost from "@/components/FeedPost";
 import BottomNavBar from "@/components/BottomNavBar";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -12,17 +13,67 @@ import { useLocation } from "wouter";
 export default function Home() {
   const [activeTab, setActiveTab] = useState("my-feed");
   const [showStories, setShowStories] = useState(true);
+  const [showStoryViewer, setShowStoryViewer] = useState(false);
+  const [selectedStoryUser, setSelectedStoryUser] = useState(0);
   const lastScrollY = useRef(0);
   const [, setLocation] = useLocation();
 
+  const storyUsers: StoryUser[] = [
+    {
+      username: "priya",
+      avatarUrl: "https://i.pravatar.cc/150?img=1",
+      stories: [
+        { id: "1", imageUrl: "https://images.unsplash.com/photo-1566552881560-0be862a7c445?w=800&h=1200&fit=crop", timestamp: "2h ago" },
+        { id: "2", imageUrl: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800&h=1200&fit=crop", timestamp: "3h ago" },
+      ],
+    },
+    {
+      username: "raj",
+      avatarUrl: "https://i.pravatar.cc/150?img=2",
+      stories: [
+        { id: "3", imageUrl: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=1200&fit=crop", timestamp: "5h ago" },
+      ],
+    },
+    {
+      username: "anjali",
+      avatarUrl: "https://i.pravatar.cc/150?img=3",
+      stories: [
+        { id: "4", imageUrl: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800&h=1200&fit=crop", timestamp: "1d ago" },
+      ],
+    },
+    {
+      username: "arjun",
+      avatarUrl: "https://i.pravatar.cc/150?img=4",
+      stories: [
+        { id: "5", imageUrl: "https://images.unsplash.com/photo-1533105079780-92b9be482077?w=800&h=1200&fit=crop", timestamp: "8h ago" },
+        { id: "6", imageUrl: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800&h=1200&fit=crop", timestamp: "10h ago" },
+      ],
+    },
+    {
+      username: "neha",
+      avatarUrl: "https://i.pravatar.cc/150?img=5",
+      stories: [
+        { id: "7", imageUrl: "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800&h=1200&fit=crop", timestamp: "6h ago" },
+      ],
+    },
+    {
+      username: "vikram",
+      avatarUrl: "https://i.pravatar.cc/150?img=6",
+      stories: [
+        { id: "8", imageUrl: "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=800&h=1200&fit=crop", timestamp: "4h ago" },
+      ],
+    },
+  ];
+
   const stories = [
-    { username: "Your Story", isOwnStory: true, hasStory: false },
-    { username: "priya", isViewed: false, avatarUrl: "https://i.pravatar.cc/150?img=1" },
-    { username: "raj", isViewed: false, avatarUrl: "https://i.pravatar.cc/150?img=2" },
-    { username: "anjali", isViewed: true, avatarUrl: "https://i.pravatar.cc/150?img=3" },
-    { username: "arjun", isViewed: false, avatarUrl: "https://i.pravatar.cc/150?img=4" },
-    { username: "neha", isViewed: false, avatarUrl: "https://i.pravatar.cc/150?img=5" },
-    { username: "vikram", isViewed: false, avatarUrl: "https://i.pravatar.cc/150?img=6" },
+    { username: "Your Story", isOwnStory: true, hasStory: false, isViewed: false },
+    ...storyUsers.map(user => ({
+      username: user.username,
+      avatarUrl: user.avatarUrl,
+      isViewed: user.username === "anjali",
+      hasStory: true,
+      isOwnStory: false,
+    })),
   ];
 
   const myFeedPosts = [
@@ -123,7 +174,7 @@ export default function Home() {
       <header className="sticky top-0 z-40 glass-strong border-b border-white/10 backdrop-blur-xl">
         <div className="h-14 px-4 flex items-center justify-between max-w-2xl mx-auto">
           <h1 className="font-display font-bold text-2xl gradient-text">
-            INSocial
+            InsocialApp
           </h1>
           <div className="flex items-center gap-2">
             <Button
@@ -148,8 +199,17 @@ export default function Home() {
       >
         <ScrollArea className="w-full">
           <div className="flex gap-3 p-4 max-w-2xl mx-auto">
-            {stories.map((story) => (
-              <StoryRing key={story.username} {...story} />
+            {stories.map((story, index) => (
+              <StoryRing 
+                key={story.username} 
+                {...story}
+                onClick={() => {
+                  if (!story.isOwnStory && story.hasStory) {
+                    setSelectedStoryUser(index - 1);
+                    setShowStoryViewer(true);
+                  }
+                }}
+              />
             ))}
           </div>
           <ScrollBar orientation="horizontal" />
@@ -239,6 +299,15 @@ export default function Home() {
       </div>
 
       <BottomNavBar />
+
+      {/* Story Viewer */}
+      {showStoryViewer && (
+        <StoryViewer
+          users={storyUsers}
+          initialUserIndex={selectedStoryUser}
+          onClose={() => setShowStoryViewer(false)}
+        />
+      )}
     </div>
   );
 }

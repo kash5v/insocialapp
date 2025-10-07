@@ -7,6 +7,7 @@ interface StoryRingProps {
   hasStory?: boolean;
   isViewed?: boolean;
   isOwnStory?: boolean;
+  onClick?: () => void;
 }
 
 export default function StoryRing({ 
@@ -14,11 +15,13 @@ export default function StoryRing({
   avatarUrl, 
   hasStory = true, 
   isViewed = false,
-  isOwnStory = false 
+  isOwnStory = false,
+  onClick 
 }: StoryRingProps) {
   return (
     <button 
       className="flex flex-col items-center gap-1 min-w-[72px]"
+      onClick={onClick}
       data-testid={`story-${username}`}
     >
       <div className={`
