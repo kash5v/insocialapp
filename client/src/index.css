@@ -51,6 +51,9 @@
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 20% 98%;
 
+  --verified-individual: 210 100% 45%;
+  --verified-individual-foreground: 0 0% 100%;
+
   --input: 250 12% 88%;
   --ring: 260 85% 58%;
   
@@ -133,6 +136,9 @@
 
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 20% 98%;
+
+  --verified-individual: 210 100% 50%;
+  --verified-individual-foreground: 0 0% 100%;
 
   --input: 260 15% 20%;
   --ring: 260 85% 58%;
