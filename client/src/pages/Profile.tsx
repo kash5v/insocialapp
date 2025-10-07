@@ -32,20 +32,29 @@ export default function Profile() {
   ];
 
   const photos = userPosts;
-  const reels = [
-    { id: 1, imageUrl: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop", views: "12.5K" },
-    { id: 2, imageUrl: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=400&h=400&fit=crop", views: "8.3K" },
+  const timeline = [
+    { id: 1, type: "text", content: "Just had the best chai at my favorite cafe! ☕", timestamp: "2h ago", likes: 234 },
+    { id: 2, type: "photo", imageUrl: "https://images.unsplash.com/photo-1566552881560-0be862a7c445?w=400&h=400&fit=crop", caption: "Sunset vibes 🌅", timestamp: "5h ago", likes: 1234 },
+    { id: 3, type: "text", content: "Weekend plans: exploring new places and trying new food!", timestamp: "1d ago", likes: 456 },
   ];
-  const videos = [
+  const shorts = [
+    { id: 1, imageUrl: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop", views: "12.5K", duration: "0:15" },
+    { id: 2, imageUrl: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=400&h=400&fit=crop", views: "8.3K", duration: "0:30" },
+  ];
+  const longVideos = [
     { id: 1, imageUrl: "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=400&h=400&fit=crop", duration: "5:23" },
     { id: 2, imageUrl: "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=400&h=400&fit=crop", duration: "3:45" },
-  ];
-  const reposts = [
-    { id: 1, imageUrl: "https://images.unsplash.com/photo-1533105079780-92b9be482077?w=400&h=400&fit=crop" },
   ];
   const membersOnly = [
     { id: 1, imageUrl: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=400&fit=crop" },
     { id: 2, imageUrl: "https://images.unsplash.com/photo-1566552881560-0be862a7c445?w=400&h=400&fit=crop" },
+  ];
+  const reposts = [
+    { id: 1, imageUrl: "https://images.unsplash.com/photo-1533105079780-92b9be482077?w=400&h=400&fit=crop" },
+  ];
+  const tags = [
+    { id: 1, imageUrl: "https://images.unsplash.com/photo-1566552881560-0be862a7c445?w=400&h=400&fit=crop" },
+    { id: 2, imageUrl: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&h=400&fit=crop" },
   ];
 
   return (
@@ -204,23 +213,39 @@ export default function Profile() {
                   data-testid="tab-photos"
                 >
                   <Grid className="w-4 h-4" />
-                  Photos
+                  Photo Grid
                 </TabsTrigger>
                 <TabsTrigger 
-                  value="reels" 
+                  value="timeline" 
                   className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 gap-2"
-                  data-testid="tab-reels"
+                  data-testid="tab-timeline"
                 >
-                  <Camera className="w-4 h-4" />
-                  Reels
+                  <List className="w-4 h-4" />
+                  Timeline
                 </TabsTrigger>
                 <TabsTrigger 
-                  value="videos" 
+                  value="shorts" 
                   className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 gap-2"
-                  data-testid="tab-videos"
+                  data-testid="tab-shorts"
                 >
-                  <Video className="w-4 h-4" />
-                  Videos
+                  <Play className="w-4 h-4" />
+                  Shorts
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="longvideos" 
+                  className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 gap-2"
+                  data-testid="tab-longvideos"
+                >
+                  <Film className="w-4 h-4" />
+                  Long Videos
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="members" 
+                  className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 gap-2"
+                  data-testid="tab-members"
+                >
+                  <Crown className="w-4 h-4" />
+                  Members Only
                 </TabsTrigger>
                 <TabsTrigger 
                   value="reposts" 
@@ -231,28 +256,12 @@ export default function Profile() {
                   Reposts
                 </TabsTrigger>
                 <TabsTrigger 
-                  value="members" 
+                  value="tags" 
                   className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 gap-2"
-                  data-testid="tab-members"
+                  data-testid="tab-tags"
                 >
-                  <Crown className="w-4 h-4" />
-                  Members
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="archive" 
-                  className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 gap-2"
-                  data-testid="tab-archive"
-                >
-                  <Archive className="w-4 h-4" />
-                  Archive
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="saved" 
-                  className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 gap-2"
-                  data-testid="tab-saved"
-                >
-                  <Bookmark className="w-4 h-4" />
-                  Saved
+                  <Tag className="w-4 h-4" />
+                  Tags
                 </TabsTrigger>
               </TabsList>
               <ScrollBar orientation="horizontal" />
@@ -279,52 +288,75 @@ export default function Profile() {
             </div>
           </TabsContent>
 
-          <TabsContent value="reels" className="mt-0">
+          <TabsContent value="timeline" className="mt-0 p-4 space-y-4">
+            {timeline.map((item) => (
+              <div
+                key={item.id}
+                className="glass rounded-2xl p-4 border border-white/10"
+                data-testid={`timeline-${item.id}`}
+              >
+                {item.type === "text" ? (
+                  <div>
+                    <p className="text-foreground mb-2">{item.content}</p>
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <span>{item.timestamp}</span>
+                      <div className="flex items-center gap-1">
+                        <Heart className="w-4 h-4" />
+                        <span>{item.likes}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <img src={item.imageUrl} alt="" className="w-full rounded-xl mb-2" />
+                    <p className="text-foreground mb-2">{item.caption}</p>
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <span>{item.timestamp}</span>
+                      <div className="flex items-center gap-1">
+                        <Heart className="w-4 h-4" />
+                        <span>{item.likes}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </TabsContent>
+
+          <TabsContent value="shorts" className="mt-0">
             <div className="grid grid-cols-3 gap-1">
-              {reels.map((reel) => (
+              {shorts.map((short) => (
                 <button
-                  key={reel.id}
+                  key={short.id}
                   className="relative aspect-square overflow-hidden group"
-                  data-testid={`reel-${reel.id}`}
+                  data-testid={`short-${short.id}`}
                 >
-                  <img src={reel.imageUrl} alt="" className="w-full h-full object-cover" />
-                  <Camera className="absolute top-2 right-2 w-5 h-5 text-white" />
+                  <img src={short.imageUrl} alt="" className="w-full h-full object-cover" />
+                  <Play className="absolute top-2 right-2 w-5 h-5 text-white" />
+                  <div className="absolute bottom-2 left-2 text-white text-xs font-semibold bg-black/50 px-2 py-1 rounded">
+                    {short.duration}
+                  </div>
                   <div className="absolute bottom-2 right-2 text-white text-xs font-semibold bg-black/50 px-2 py-1 rounded">
-                    {reel.views}
+                    {short.views}
                   </div>
                 </button>
               ))}
             </div>
           </TabsContent>
 
-          <TabsContent value="videos" className="mt-0">
+          <TabsContent value="longvideos" className="mt-0">
             <div className="grid grid-cols-3 gap-1">
-              {videos.map((video) => (
+              {longVideos.map((video) => (
                 <button
                   key={video.id}
                   className="relative aspect-square overflow-hidden group"
-                  data-testid={`video-${video.id}`}
+                  data-testid={`longvideo-${video.id}`}
                 >
                   <img src={video.imageUrl} alt="" className="w-full h-full object-cover" />
-                  <Video className="absolute top-2 right-2 w-5 h-5 text-white" />
+                  <Film className="absolute top-2 right-2 w-5 h-5 text-white" />
                   <div className="absolute bottom-2 right-2 text-white text-xs font-semibold bg-black/50 px-2 py-1 rounded">
                     {video.duration}
                   </div>
-                </button>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="reposts" className="mt-0">
-            <div className="grid grid-cols-3 gap-1">
-              {reposts.map((repost) => (
-                <button
-                  key={repost.id}
-                  className="relative aspect-square overflow-hidden group"
-                  data-testid={`repost-${repost.id}`}
-                >
-                  <img src={repost.imageUrl} alt="" className="w-full h-full object-cover" />
-                  <Share2 className="absolute top-2 right-2 w-5 h-5 text-white" />
                 </button>
               ))}
             </div>
@@ -345,23 +377,31 @@ export default function Profile() {
             </div>
           </TabsContent>
 
-          <TabsContent value="archive" className="mt-0 p-6">
-            <div className="text-center py-12">
-              <Archive className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="font-display font-semibold text-lg text-foreground mb-2">Your Archive</h3>
-              <p className="text-muted-foreground">Stories and posts you've archived will appear here</p>
+          <TabsContent value="reposts" className="mt-0">
+            <div className="grid grid-cols-3 gap-1">
+              {reposts.map((repost) => (
+                <button
+                  key={repost.id}
+                  className="relative aspect-square overflow-hidden group"
+                  data-testid={`repost-${repost.id}`}
+                >
+                  <img src={repost.imageUrl} alt="" className="w-full h-full object-cover" />
+                  <Share2 className="absolute top-2 right-2 w-5 h-5 text-white" />
+                </button>
+              ))}
             </div>
           </TabsContent>
 
-          <TabsContent value="saved" className="mt-0">
+          <TabsContent value="tags" className="mt-0">
             <div className="grid grid-cols-3 gap-1">
-              {savedPosts.map((post) => (
+              {tags.map((tag) => (
                 <button
-                  key={post.id}
-                  className="aspect-square overflow-hidden"
-                  data-testid={`saved-${post.id}`}
+                  key={tag.id}
+                  className="relative aspect-square overflow-hidden group"
+                  data-testid={`tag-${tag.id}`}
                 >
-                  <img src={post.imageUrl} alt="" className="w-full h-full object-cover hover:opacity-90 transition-opacity" />
+                  <img src={tag.imageUrl} alt="" className="w-full h-full object-cover" />
+                  <Tag className="absolute top-2 right-2 w-5 h-5 text-white" />
                 </button>
               ))}
             </div>
