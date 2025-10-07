@@ -1,14 +1,14 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { CheckCircle2 } from "lucide-react";
+import VerificationBadge from "@/components/VerificationBadge";
 
 interface ProfileHeaderProps {
   displayName: string;
   username: string;
   avatar?: string;
   bio?: string;
-  isVerified?: boolean;
+  verificationType?: "government" | "professional" | "individual" | null;
+  isPremium?: boolean;
   posts: number;
   followers: number;
   following: number;
@@ -22,7 +22,8 @@ export default function ProfileHeader({
   username,
   avatar,
   bio,
-  isVerified = false,
+  verificationType,
+  isPremium = false,
   posts,
   followers,
   following,
@@ -62,12 +63,7 @@ export default function ProfileHeader({
           <h1 className="font-display font-bold text-xl text-foreground" data-testid="profile-name">
             {displayName}
           </h1>
-          {isVerified && (
-            <Badge variant="outline" className="gap-1 border-primary/20 bg-primary/10 text-primary px-2 py-0">
-              <CheckCircle2 className="w-3 h-3" />
-              <span className="text-xs">Verified</span>
-            </Badge>
-          )}
+          <VerificationBadge verificationType={verificationType} isPremium={isPremium} />
         </div>
         <p className="text-sm text-muted-foreground font-mono" data-testid="profile-username">
           @{username}
