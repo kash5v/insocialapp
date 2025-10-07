@@ -1,0 +1,367 @@
+ठीक है — मैं दोनों दे रहा हूँ:
+
+1. MVP architecture diagram (text-based boxes + ports + sequence flow) — सीधे dev/infra को दे सकते हो।
+2. Detailed PostgreSQL DB schema (SQL DDL) — users, auth_sessions, follows, friend_requests, posts, media_items, stories, conversations, messages, likes, comments, groups, group_members, sounds, audit_logs — production-ready constraints/indexes के साथ।
+
+नीचे पढ़ो — सीधा, साफ, और implementable।
+
+---
+
+A — MVP Architecture (text diagram + ports + sequence flows)
+
+```
+[Clients]
+  - Web: Next.js (HTTPS)
+  - Mobile (future): Flutter / RN (HTTPS, WebSocket)
+  - Admin UI (React/Next)
+
+    | HTTPS / WSS (443)
+    v
+
+[API Gateway / Reverse Proxy]
+  - NGINX / Kong / Traefik
+  - Responsibilities: TLS termination, routing, rate-limit, auth-check
+    Routes:
+      /api/*  -> User API Service
+      /media/* -> CDN / Media Service (signed URLs)
+      /ws/* -> Realtime Service (WebSocket / Matrix proxy)
+      /auth/* -> Auth Service (Keycloak / Supabase)
+
+    | Internal HTTP/gRPC
+    v
+
++--------------------------+        +-----------------------+       +----------------+
+| User Service (REST)      | <----> | Auth Service (Keycloak)| <-->  | Identity Store |
+| - profiles, follow,      |        | - OAuth, JWT, OIDC    |       | (Postgres)     |
+|   friend-requests        |        | - Social login        |       +----------------+
++--------------------------+        +-----------------------+
+      |                                ^
+      |                                |
+      v                                |
++--------------------------+            |
+| Social / Feed Service    |            |
+| - posts, feed endpoints  |            |
+| - feed ranking (simple)  |            |
++--------------------------+            |
+      |                                |
+      | S3/MinIO presigned URLs        |
+      v                                |
++--------------------------+            |
+| Media Service (Workers)  |<-----------+
+| - S3 events -> queue     |
+| - FFmpeg transcode (HLS) |
+| - generate thumbs/audio  |
++--------------------------+
+      |
+      | store artifacts -> MinIO/S3 + update DB
+      v
+[Object Storage S3 / MinIO] ---> CDN (Cloudflare / CloudFront)
+
+Realtime path:
+[Clients] -- WSS --> [Realtime Service]
+Realtime Service <-> Redis Pub/Sub (or Matrix Synapse)
+Realtime Service stores metadata in Postgres (messages metadata only) and encrypted payloads in object storage or Matrix.
+
+Other services:
+• Notification Service (Push / Email) -> FCM / Web Push / SMTP
+• Moderation Service (ML) -> receives media/text via queue, flags -> Admin UI
+• Search Service -> OpenSearch (users, posts, hashtags)
+• Analytics pipeline -> Kafka -> ClickHouse / BigQuery for offline ML
+
+Deployment:
+• Kubernetes cluster (namespaces per env)
+• Helm charts + ArgoCD (GitOps)
+• CI: GitHub Actions -> build images -> push -> deploy
+• Monitoring: Prometheus + Grafana, Logging: Loki/ELK
+
+Security:
+• TLS everywhere, WAF, secrets manager (Vault)
+• DB backups, object storage lifecycle
+```
+
+Sequence examples (quick)
+
+1. Signup (email/google)
+
+   * Client → API Gateway → Auth Service (Keycloak) → create user in Postgres via User Service → return JWT.
+
+2. Upload Post with Video
+
+   * Client → /media/presign (User Service) → returns presigned S3 URL
+   * Client uploads directly to S3/MinIO
+   * S3 triggers event → Media Worker enqueues job → FFmpeg transcode → store outputs → update “media_items” → notify Social Service → visible in feed.
+
+3. Send Chat Message (WebSocket)
+
+   * Client opens WSS → authenticate via JWT
+   * Client sends message → Realtime Service persists metadata + stores encrypted blob → publishes via Redis/MQ to recipient sockets → trigger push notification.
+
+---
+
+B — Detailed PostgreSQL Schema (SQL DDL)
+
+नीचे PostgreSQL के लिए SQL DDL दिया है — indexes और constraints के साथ। UUID primary keys use किये गए हैं। JSONB कुछ fields के लिए रखा है ताकि future flexibility रहे।
+
+> ध्यान: run करने से पहले “uuid-ossp” extension enable करो:
+> “CREATE EXTENSION IF NOT EXISTS "uuid-ossp";”
+
+```sql
+-- enable uuid generation
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- users
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  connect_id TEXT NOT NULL UNIQUE,       -- e.g., username@meton or unique handle
+  display_name TEXT NOT NULL,
+  email TEXT UNIQUE,
+  password_hash TEXT,                    -- nullable if OAuth
+  profile_pic_url TEXT,
+  bio TEXT,
+  language TEXT DEFAULT 'en',
+  verified_status TEXT DEFAULT 'none',   -- none|pending|verified
+  verification_meta JSONB,               -- store provider id, token hash (no raw aadhaar)
+  settings JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_users_connect_id_lower ON users (lower(connect_id));
+CREATE INDEX idx_users_email_lower ON users (lower(email));
+
+-- auth sessions / refresh tokens
+CREATE TABLE auth_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  refresh_token_hash TEXT NOT NULL,
+  device_info JSONB,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  expires_at TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX idx_auth_user_id ON auth_sessions(user_id);
+
+-- follows (asymmetric)
+CREATE TABLE follows (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  follower_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  followed_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (follower_id, followed_id)
+);
+CREATE INDEX idx_follows_follower ON follows(follower_id);
+CREATE INDEX idx_follows_followed ON follows(followed_id);
+
+-- friend requests (for mutual "Add")
+CREATE TABLE friend_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  requester_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  receiver_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'pending', -- pending|accepted|rejected
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (requester_id, receiver_id)
+);
+CREATE INDEX idx_friend_req_receiver ON friend_requests(receiver_id);
+
+-- posts
+CREATE TABLE posts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type TEXT NOT NULL DEFAULT 'post', -- post|microblog|photo|video|reel|story
+  caption TEXT,
+  meta JSONB DEFAULT '{}'::jsonb,    -- e.g., {"language":"en","location":...}
+  visibility TEXT NOT NULL DEFAULT 'public', -- public|friends|closefriends|custom
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  like_count INT DEFAULT 0,
+  comment_count INT DEFAULT 0,
+  view_count BIGINT DEFAULT 0
+);
+CREATE INDEX idx_posts_user_created ON posts(user_id, created_at DESC);
+CREATE INDEX idx_posts_created ON posts(created_at DESC);
+
+-- media items
+CREATE TABLE media_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  post_id UUID REFERENCES posts(id) ON DELETE SET NULL,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  storage_key TEXT NOT NULL, -- S3 key
+  mime_type TEXT,
+  width INT,
+  height INT,
+  duration_sec INT,
+  thumb_key TEXT,
+  transcoding_status TEXT DEFAULT 'pending', -- pending|processing|done|failed
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX idx_media_post ON media_items(post_id);
+CREATE INDEX idx_media_user ON media_items(user_id);
+
+-- stories
+CREATE TABLE stories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id),
+  media_item_id UUID NOT NULL REFERENCES media_items(id),
+  visibility TEXT DEFAULT 'friends', -- public|friends|closefriends
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX idx_stories_user ON stories(user_id);
+CREATE INDEX idx_stories_expires ON stories(expires_at);
+
+-- comments
+CREATE TABLE comments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  parent_comment_id UUID REFERENCES comments(id) ON DELETE SET NULL,
+  text TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX idx_comments_post ON comments(post_id);
+CREATE INDEX idx_comments_user ON comments(user_id);
+
+-- likes (posts/comments)
+CREATE TABLE likes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  target_type TEXT NOT NULL, -- post|comment
+  target_id UUID NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, target_type, target_id)
+);
+CREATE INDEX idx_likes_user ON likes(user_id);
+-- Consider a partial index per type if large volume
+
+-- channels/groups
+CREATE TABLE groups (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_id UUID NOT NULL REFERENCES users(id),
+  name TEXT NOT NULL,
+  handle TEXT UNIQUE, -- short unique handle
+  description TEXT,
+  type TEXT DEFAULT 'group', -- group|channel
+  visibility TEXT DEFAULT 'public', -- public|private|invite
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX idx_groups_owner ON groups(owner_id);
+
+CREATE TABLE group_members (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  group_id UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role TEXT DEFAULT 'member', -- member|admin|moderator
+  joined_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (group_id, user_id)
+);
+CREATE INDEX idx_group_members_group ON group_members(group_id);
+CREATE INDEX idx_group_members_user ON group_members(user_id);
+
+-- conversations & message metadata (chat)
+CREATE TABLE conversations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  type TEXT NOT NULL, -- dm|group|channel
+  created_at TIMESTAMPTZ DEFAULT now(),
+  last_message_at TIMESTAMPTZ
+);
+
+CREATE TABLE conversation_participants (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role TEXT DEFAULT 'member',
+  joined_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(conversation_id, user_id)
+);
+
+-- messages metadata (store encrypted payload pointer)
+CREATE TABLE messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  sender_id UUID NOT NULL REFERENCES users(id),
+  payload_pointer TEXT NOT NULL, -- storage key / Matrix event id
+  mime_type TEXT,
+  msg_type TEXT DEFAULT 'text', -- text|media|system
+  created_at TIMESTAMPTZ DEFAULT now(),
+  delivered JSONB DEFAULT '[]'::jsonb, -- array of recipient ids delivered
+  read JSONB DEFAULT '[]'::jsonb
+);
+CREATE INDEX idx_messages_conv_created ON messages(conversation_id, created_at DESC);
+
+-- sounds (audio library extracted from videos or uploads)
+CREATE TABLE sounds (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  uploader_id UUID REFERENCES users(id),
+  storage_key TEXT NOT NULL,
+  duration_sec INT,
+  title TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX idx_sounds_created ON sounds(created_at DESC);
+
+-- audit logs
+CREATE TABLE audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id),
+  action TEXT NOT NULL,
+  ip INET,
+  user_agent TEXT,
+  meta JSONB,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX idx_audit_user ON audit_logs(user_id);
+
+-- simple full-text search index for posts.caption (optional)
+ALTER TABLE posts ADD COLUMN caption_tsv tsvector;
+CREATE INDEX idx_posts_caption_tsv ON posts USING GIN(caption_tsv);
+
+-- trigger: update caption_tsv on insert/update
+CREATE FUNCTION posts_tsv_trigger() RETURNS trigger AS $$
+begin
+  new.caption_tsv := to_tsvector('english', coalesce(new.caption,''));
+  return new;
+end
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER tsvectorupdate BEFORE INSERT OR UPDATE
+  ON posts FOR EACH ROW EXECUTE PROCEDURE posts_tsv_trigger();
+
+-- Basic housekeeping: update updated_at
+CREATE FUNCTION set_updated_at() RETURNS trigger AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER users_set_updated BEFORE UPDATE ON users
+  FOR EACH ROW EXECUTE PROCEDURE set_updated_at();
+
+CREATE TRIGGER posts_set_updated BEFORE UPDATE ON posts
+  FOR EACH ROW EXECUTE PROCEDURE set_updated_at();
+
+-- NOTE: Add more triggers / partitions for messages/posts when scaling.
+```
+
+---
+
+C — Notes, best practices & deployment tips
+
+ Encrypt sensitive data*: store only hashed/hashed-with-salt sensitive identifiers; for verification store provider token IDs & hashes — never raw Aadhaar.
+ Partition large tables*: messages, posts — use time-based partitioning after ~100M rows.
+ Indices*: tune indexes for feed queries (user + created_at, visibility) and use denormalized counters for likes/comments.
+ Backups*: PITR for Postgres, object storage lifecycle + versioning on S3.
+ E2E chat*: if you want true E2E ensure clients do client-side encryption (Matrix/Signal) — server only stores pointers.
+ Testing*: create seed data, run load tests (k6 / JMeter) for media endpoints.
+
+---
+
+D — Next actionable files I can generate right now (choose any, I’ll produce immediately)
+
+ A. Text MVP architecture diagram* (more compact / printable) — ready (I already provided).
+ B. Full SQL seed + sample queries* (create demo users, posts, follow relations).
+ C. API spec (OpenAPI/Swagger) for the endpoints listed*.
+ D. Worker (FFmpeg) job pseudocode + Dockerfile*.
+ E. Kubernetes manifest / Helm chart skeleton* for deployment.
+
+आप क्या चाहोगे — मैं अभी कौन सा बनाकर दे दूँ? (मैं बिना देर किए अभी बना दूँगा).

@@ -1,0 +1,474 @@
+ठीक है — नीचे **INSocial / Connect+** जैसा पूरा application architecture (text-only) दे रहा हूँ: end-to-end, pragmatic, India-first, open-source–friendly और phased — ताकि आप इसे सीधे dev / infra टीम को दे सकें या अकेले MVP बनाना शुरू कर सकें।
+
+मैंने design को साफ sections में बाँटा है: Overview, Components, Data model (主要 tables), API design, Real-time/chat design, Media pipeline, Verification & Auth, Security & Compliance, Deployment & Scalability, Monitoring & CI/CD, Cost/infra estimate (MVP), Phased roadmap + next steps.
+उम्मीद: आप web-first launch चाह रहे हैं; नीचे वही मान कर recipe दी है (web = Next.js; mobile later with Flutter/React Native).
+
+---
+
+# 1) High-level overview (one-line)
+
+**Goal:** India-focused social app with chat-first UX, feed (9:16 posts + microblogs), stories, shorts/long videos, private “Add” vs public “Follow/Tribe”, optional Aadhaar verification, email/Google login, future personal email IDs — all built on an API-first, microservices style, open-source friendly stack.
+
+---
+
+# 2) System components (logical modules)
+
+1. **Client**
+
+   * Web (React + Next.js) — primary.
+   * Mobile later: Flutter (single codebase for Android/iOS) **or** React Native + React Native Web.
+   * Admin console (React or Next.js) for moderation, verification dashboard.
+
+2. **API Gateway**
+
+   * Public ingress (NGINX / Kong / AWS API Gateway) — routes to microservices, auth checks, rate limiting.
+
+3. **Auth & Identity**
+
+   * Open-source IAM: **Keycloak** (or Supabase/Auth for simpler MVP).
+   * OAuth2/OIDC for Google login.
+   * Session tokens: JWT (short lived) + Refresh tokens.
+
+4. **User Service**
+
+   * User profile, Connect+ ID, display name, settings, follow/fans, friend requests, verification status.
+
+5. **Social Service (Feed)**
+
+   * Posts (text, image, video), microblogs, story references, feed ranking logic (simple for MVP, recommender later).
+
+6. **Media Service**
+
+   * Upload endpoints, transcoding jobs (FFmpeg), thumbnails, audio extraction, storage metadata.
+
+7. **Chat / Real-time Service**
+
+   * Use **Matrix (Synapse) or custom WebSocket (Socket.IO)** for real-time messaging.
+   * For E2E: integrate **libsignal** or Matrix E2EE.
+
+8. **Notification Service**
+
+   * Push notifications (Web Push / Firebase Cloud Messaging), in-app notifications, email notifications.
+
+9. **Search & Discover**
+
+   * Elasticsearch / OpenSearch for search (users, hashtags, posts).
+
+10. **Moderation / Content Safety**
+
+    * Queues for moderation: automated models + human moderation UI.
+    * Use open-source moderation models initially (Hugging Face toxicity classifiers) and image/video heuristics (Detectron2 / YOLO).
+
+11. **Media CDN & Storage**
+
+    * Object storage: S3 or **MinIO** (self-hosted S3 compatible).
+    * CDN: Cloudflare / Fastly or AWS CloudFront for performance.
+
+12. **Background Workers / Queueing**
+
+    * RabbitMQ / Redis Streams / Celery / RQ for asynchronous tasks (transcoding, thumbnails, notif delivery, moderation jobs).
+
+13. **Database**
+
+    * Primary relational: PostgreSQL (users, posts, follows, messages metadata, transactions).
+    * NoSQL: MongoDB (optional) for flexible content, Redis for caching and ephemeral state.
+
+14. **Analytics & ML**
+
+    * Event pipeline (Kafka) → store usage events → feed personalization / ML offline training.
+
+15. **Admin & Moderation UI**
+
+    * Tools to review reports, manage verified badges, access logs, ban/unban, manage communities.
+
+---
+
+# 3) Recommended Tech Stack (example)
+
+* Frontend: Next.js (React) + Tailwind CSS (fast UI)
+* Mobile (phase 2): Flutter or React Native
+* Auth: Keycloak (production) or Supabase Auth (MVP)
+* API: Node.js (NestJS or Express) or Go (Gin) — REST + GraphQL optional
+* Real-time chat: **Matrix (Synapse)** or server implemented with WebSockets (uWebSockets/Socket.IO); E2EE via Signal protocol or Matrix’s E2EE
+* DB: PostgreSQL (primary), Redis (cache, pub/sub), MinIO (S3 compatible storage)
+* Transcoding: FFmpeg (worker containers)
+* Search: OpenSearch / Elasticsearch
+* Queue: RabbitMQ or Redis Streams (RQ/Celery)
+* CDN: Cloudflare / CloudFront
+* Container Orchestration: Kubernetes (EKS/GKE/AKS) or Docker Compose for MVP
+* Monitoring: Prometheus + Grafana, ELK (Elasticsearch / Logstash / Kibana)
+* CI/CD: GitHub Actions / GitLab CI → Docker images → Kubernetes deployments
+
+(Chosen techs are open-source friendly and widely used.)
+
+---
+
+# 4) Core data model (主要 tables) — PostgreSQL
+
+> **users**
+
+* id (uuid, pk)
+* connect_id (unique string, e.g., username@meton)
+* display_name
+* email (nullable)
+* password_hash (nullable if OAuth)
+* created_at, updated_at
+* verified_status (enum: none/pending/verified)
+* verification_meta (json) — store verification provider id (NOT raw Aadhaar)
+* profile_pic_url
+* bio, location, language
+* settings (json)
+
+> **auth_sessions**
+
+* id, user_id, refresh_token_hash, expires_at, device_info
+
+> **follows**
+
+* id, follower_id, followed_id, created_at
+* unique (follower_id, followed_id)
+
+> **friend_requests**
+
+* id, requester_id, receiver_id, status (pending/accepted/rejected), created_at
+
+> **posts**
+
+* id, user_id, type(enum: microblog/photo/video/reel/story), caption, meta(json), visibility(enum: public/fans/friends/custom), created_at, updated_at, like_count, comment_count, view_count
+
+> **media_items**
+
+* id, post_id, user_id, storage_key, mime_type, width, height, duration, thumb_key, transcoding_status
+
+> **stories**
+
+* id, user_id, media_item_id, expires_at, visibility
+
+> **comments**
+
+* id, post_id, user_id, parent_comment_id, text, created_at
+
+> **likes**
+
+* id, user_id, target_type(enum post/comment), target_id, created_at
+
+> **channels / groups**
+
+* id, owner_id, name, description, type, visibility, created_at
+
+> **group_members**
+
+* id, group_id, user_id, role (member/mod/admin), joined_at
+
+> **messages** (chat message index; message content encrypted)
+
+* id, conversation_id (dm or group), sender_id, encrypted_payload_ref, msg_type (text/media), created_at, status (sent/delivered/read)
+* store only metadata; actual encrypted payload stored in object storage or Matrix server.
+
+> **conversations**
+
+* id, type (dm/group/channel), created_at, last_message_at
+
+> **sounds**
+
+* id, uploader_id, storage_key, duration, created_at, tags
+
+> **audit_logs** (for compliance)
+
+* id, user_id, action, ip, user_agent, created_at, meta(json)
+
+---
+
+# 5) API design (Representative endpoints)
+
+Use REST or GraphQL. Example REST endpoints:
+
+**Auth**
+
+* POST /api/v1/auth/signup (email + password)
+* POST /api/v1/auth/login (email+pwd)
+* POST /api/v1/auth/oauth/google (Google OAuth exchange)
+* POST /api/v1/auth/magic-link (email)
+* POST /api/v1/auth/refresh
+
+**Users**
+
+* GET /api/v1/users/:id/profile
+* POST /api/v1/users/:id/update
+* POST /api/v1/users/check-username (availability)
+
+**Connections**
+
+* POST /api/v1/follow (body: target_id)
+* DELETE /api/v1/follow/:target_id
+* POST /api/v1/friend-request (target_id)
+* POST /api/v1/friend-request/:id/accept
+
+**Feed**
+
+* GET /api/v1/feed?section=closefriends|friends|explore&page=...
+* POST /api/v1/posts (multipart upload or presigned url)
+* GET /api/v1/posts/:post_id
+* POST /api/v1/posts/:post_id/like
+
+**Stories**
+
+* POST /api/v1/stories (upload flow)
+* GET /api/v1/stories/:user_id
+
+**Media**
+
+* POST /api/v1/media/presign → returns presigned S3/MinIO URL
+* POST /api/v1/media/notify (worker callback after upload)
+
+**Chat**
+
+* WebSocket / Matrix endpoints (real-time). For REST:
+
+  * GET /api/v1/conversations
+  * GET /api/v1/conversations/:id/messages?since=... (for history sync)
+
+**Moderation/Admin**
+
+* GET /api/v1/admin/reports
+* POST /api/v1/admin/verify-user (for KYC/verification manual steps)
+
+---
+
+# 6) Real-time & Chat architecture (detailed)
+
+Option A — **Use Matrix (recommended)**:
+
+* Deploy **Synapse** (Matrix server) as chat backbone (handles rooms, federation, E2EE via Olm/Megolm).
+* Clients use Matrix SDK (matrix-js-sdk) for web; Flutter has matrix client alternatives.
+* Pros: E2E, proven, channels/rooms, federation capabilities if desired.
+
+Option B — **Custom WebSocket-based**
+
+* Real-time service built in Node.js with uWebSockets/Socket.IO, storing message metadata in PostgreSQL and caching in Redis pub/sub.
+* For E2E use Signal protocol libraries — complex to implement from scratch.
+* Use Redis Streams for fanout (scale), partition by conversation id.
+
+**Message storage & encryption:**
+
+* For privacy, store only encrypted payloads; server cannot decrypt E2E content. Keep message metadata for search/minimal features.
+* Use scheme: client-side encryption (Signal/Matrix) → encrypted blob stored; server only indexes conversation ids, timestamps, sender id.
+
+**Offline / multi-device sync:**
+
+* Matrix handles history sync and device keys. Custom system needs message queue and message ack semantics.
+
+---
+
+# 7) Media pipeline (upload → transcode → deliver)
+
+1. **Client** requests presigned upload URL → /api/v1/media/presign
+2. **Client** uploads raw file directly to S3/MinIO (multipart)
+3. **Media Service** (worker) listens to object storage events (S3 notifications or MinIO events)
+4. Worker pulls job → **FFmpeg** tasks:
+
+   * Transcode to target bitrates (1080p, 720p, mobile 480p)
+   * Generate thumbnails (cover image)
+   * Extract audio (for Sounds library)
+   * Generate HLS segments for long videos (adaptive streaming)
+5. Save processed artifacts to storage and update **media_items** status
+6. CDN caches deliver content globally
+7. Web/Apps request streaming via CDN/HLS or progressive download
+
+**Shorts (9:16)**
+
+* Enforce aspect ratio during upload (client validation), or crop/pad server side.
+* Store original & vertical encoded copies for fast delivery.
+
+**Storage cleanup**
+
+* Lifecycle rules (archive or delete old unreferenced data).
+
+---
+
+# 8) Verification & Aadhaar (privacy/legal)
+
+**Important:** Do NOT store raw Aadhaar numbers / sensitive data. Use an authorized KYC provider / Digilocker / UIDAI eKYC partner. Typical flow:
+
+1. User opts for verification → start flow with 3rd party KYC vendor (Authbridge, Karza, Signzy or UIDAI-authorized provider).
+2. KYC provider handles OTP & validation with UIDAI; provider returns only verification token/assertion (e.g., `verification_id`, `verified_name_hash`, expiry).
+3. **Store only**: `verified_status`, `verification_provider`, `verification_id` and non-sensitive hashed representations. Do NOT store Aadhaar number or image unnecessarily.
+4. Show **Verified Badge** in UI. Keep verification audit log.
+
+**Legal & compliance:** Data localization — keep user data on India region servers if needed. Follow IT Rules, 2021 and any upcoming Digital Personal Data Protection rules.
+
+---
+
+# 9) Security best practices
+
+* **E2E** for private chats (Matrix/Signal).
+* TLS everywhere (HTTPS, certs via Let’s Encrypt or ACM).
+* Security headers (CSP, HSTS).
+* WAF & rate limiting (Cloudflare / AWS WAF).
+* Store passwords hashed with Argon2 / bcrypt.
+* Use secrets manager (Vault / AWS Secrets Manager).
+* Audit logging of admin actions.
+* Penetration testing before public launch.
+* Backup + encrypted backups for DB & storage.
+
+---
+
+# 10) Scalability & infra patterns
+
+**MVP (1k–10k users)**:
+
+* 1 small Kubernetes cluster (2–3 nodes) or cloud VPSs.
+* PostgreSQL managed (RDS) or single instance + daily backups.
+* MinIO single node or small cluster.
+* Synapse single instance (Matrix) or hosted Matrix service.
+
+**Scaling (100k → 1M users)**:
+
+* Microservices, autoscaling groups (K8s + HPA).
+* DB scale: read replicas + partitioning; move large read queries to OLAP (ClickHouse) for analytics.
+* Use Redis clusters for caching, pub/sub.
+* Use Kafka for event pipeline.
+* Shard chat across nodes (Matrix handles room sharding; custom needs partitioning).
+* CDN global + regional edge nodes.
+* Use object lifecycle: archive cold data to object cold storage.
+
+---
+
+# 11) Monitoring, logging & SRE
+
+* **Logging:** FluentD/Logstash → Elasticsearch → Kibana for log search.
+* **Metrics:** Prometheus scrape app metrics → Grafana dashboards (latency, request rate, worker queue length).
+* **Tracing:** OpenTelemetry / Jaeger for distributed tracing.
+* **Alerts:** PagerDuty / OpsGenie for critical alerts.
+* **Uptime:** Synthetic checks (Pingdom / UptimeRobot).
+
+---
+
+# 12) CI/CD & Release flow
+
+* **Repo structure:** monorepo or services repos (recommended microservice per domain).
+* **CI:** GitHub Actions pipeline:
+
+  * lint → unit tests → build Docker image → push to registry → deploy to staging (k8s).
+* **CD:** Helm charts / ArgoCD for k8s GitOps style.
+* **Blue/Green** or Canary deployments for production.
+
+---
+
+# 13) Moderation & Trust flow
+
+* Automated pre-moderation:
+
+  * Text toxicity classifier → flag / hold.
+  * Image/video NSFW classifier (YOLO/Detectron2 + heuristics).
+* Human moderation UI to review flagged content.
+* Rate limit accounts that trigger moderation.
+* Reporting UI for users → automatic triage.
+* Verified users priority review.
+
+---
+
+# 14) Offline & data sync (critical for chat)
+
+* Client stores message drafts & local DB (IndexedDB for web; SQLite for mobile).
+* On reconnect, sync messages via conversation snapshots + missing message fetches.
+* For multi-device, use Matrix or implement per-device cursors + sequence numbers.
+
+---
+
+# 15) Sample sequence flows (text)
+
+### A) User signup (email + Google)
+
+1. Client → /auth/oauth/google → redirect to Google consent → receives code.
+2. Backend verifies → creates/gets user record → issues JWT + refresh token → returns to client.
+
+### B) Upload post with video
+
+1. Client asks for presign → /media/presign
+2. Client uploads to S3/MinIO directly.
+3. S3 event → worker job created → FFmpeg transcode → store HLS + thumbnails.
+4. Worker updates `media_items` and `posts` → post becomes visible in feed after moderation checks (if enabled).
+
+### C) Send chat message (Matrix)
+
+1. Client sends message via Matrix SDK → encrypted payload delivered to Synapse → Synapse handles delivery and device sync.
+2. Server stores message metadata (timestamp, sender, message id).
+3. Receiver gets push notification; on open, client fetches events from Matrix.
+
+---
+
+# 16) Open-source components to reuse (practical picks)
+
+* Chat: **Matrix (Synapse)** + **Element** client
+* Feed / microblog federation: **Mastodon / Pixelfed** inspiration (but you’ll likely build custom feed)
+* Video hosting: **PeerTube** as backend option or custom S3+FFmpeg pipeline
+* Storage: **MinIO** (S3 compatible)
+* Auth: **Keycloak** / **Supabase**
+* Transcoding: **FFmpeg** (workers)
+* Moderation: HuggingFace models, Detectron2 for images
+* Search: **OpenSearch** or **Elasticsearch**
+* Queue: **RabbitMQ** / **Redis Streams**
+* Orchestration: **Kubernetes** + **Helm**
+
+---
+
+# 17) Privacy & Legal (India focus)
+
+* Keep user data in India (use India region clouds or on-prem if required).
+* Use UIDAI-approved KYC partners for Aadhaar verification.
+* Implement a robust Privacy Policy and Terms of Service.
+* Prepare for takedown & grievance officer (IT Rules compliance).
+* Keep audit trails for law enforcement requests (log retention policies).
+
+---
+
+# 18) MVP (must-have) vs Later (AI, Mail, etc.)
+
+**MVP (launch fast, 3–6 months with small team):**
+
+* Web app (Next.js) + minimal styling (dark mode default).
+* Auth: Email + Google (Supabase for speed).
+* Chat: basic 1:1 & group using WebSocket or Matrix. E2E optional at first (but aim for E2E later).
+* Feed: posts (text + images), stories, simple shorts (video upload + serve).
+* Profile: Add / Follow / Tribe, Connect+ ID, verification waitlist.
+* Media: S3/MinIO + FFmpeg worker for compression + HLS for long videos.
+* Simple moderation (report button + human review).
+
+**Phase 2 (post traction/funding):**
+
+* E2E encryption for chats (Matrix/Signal).
+* Scalable infra (k8s, CDN), AI moderation, personalized recommendations.
+* Official Airtel/Jio partnerships for SMS if enabling phone OTP.
+* Mail service ([user@insocial.in](mailto:user@insocial.in)) with proper mail infra.
+* Advanced features: AR filters, real-time effects, creator monetization.
+
+---
+
+# 19) Minimal infra & cost ballpark (very rough, India MVP)
+
+* Small VPS + managed DB + object storage: ₹5k–20k/month
+* Hosted Matrix or small instance: ₹5k–15k/month
+* Storage (videos): depends heavily on users — for 1k active with 5GB/user ~ 5 TB storage → ₹5k–20k/month cloud cost.
+* CDN & bandwidth: ₹5k–30k/month scale dependent
+* SMS (if used later): per OTP ₹0.2–0.5
+* Devs: 1–2 full-stack devs for MVP or hire freelancers → biggest cost.
+
+(Precise costing needs traffic & retention numbers.)
+
+---
+
+# 20) Concrete next steps (actionable)
+
+1. **Decide fullstack for MVP:** e.g., Next.js + Node.js (NestJS) + PostgreSQL + MinIO + Matrix (or Socket.IO).
+2. **Set up repo & infra skeleton:** GitHub org, basic CI (GitHub Actions), k8s cluster or Docker compose for local.
+3. **Implement Auth + User Service + Profile UI** (signup, Connect+ ID, Display name).
+4. **Implement Chat baseline** (Matrix instance or simple websockets) → test 1:1 messaging.
+5. **Implement Media upload flow** (presign → upload → FFmpeg worker → update DB).
+6. **Implement Feed listing** (Close Friends → Friends → Explore ordering) simple algorithm.
+7. **Set up monitoring & Sentry for errors**.
+8. **Closed alpha with friends** → collect feedback, iterate.
+
+---
+
+अगर चाहो तो मैं अब तुरंत से एक **MVP architecture diagram in text** दे दूँ (component boxes + ports + sequence) या **detailed DB schema SQL** लिख दूँ (users, posts, follows, messages). बताओ कौन सा चाहिये — मैं अभी बना दूँ।
