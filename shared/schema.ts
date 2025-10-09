@@ -36,9 +36,9 @@ export const insertUserSchema = createInsertSchema(users).omit({
 export const signupSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  username: z.string().optional(),
+  firstName: z.string().optional().transform(val => val === "" ? undefined : val),
+  lastName: z.string().optional().transform(val => val === "" ? undefined : val),
+  username: z.string().optional().transform(val => val === "" ? undefined : val),
 });
 
 export const loginSchema = z.object({
