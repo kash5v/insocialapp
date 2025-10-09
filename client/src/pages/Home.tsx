@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Globe } from "lucide-react";
+import { Search, Globe, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -224,6 +224,14 @@ export default function Home() {
               data-testid="button-search"
             >
               <Search className="w-5 h-5" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => {/* TODO: Add notification functionality */}}
+              data-testid="button-notifications"
+            >
+              <Bell className="w-5 h-5" />
             </Button>
             <ThemeToggle />
           </div>

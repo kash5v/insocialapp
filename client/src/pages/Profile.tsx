@@ -140,14 +140,6 @@ export default function Profile() {
             <Button
               size="icon"
               variant="ghost"
-              onClick={() => {/* TODO: Add notification functionality */}}
-              data-testid="button-notifications"
-            >
-              <Bell className="w-5 h-5" />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
               onClick={() => setLocation("/settings")}
               data-testid="button-settings"
             >
