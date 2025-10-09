@@ -191,8 +191,8 @@ export default function Signup() {
 
           <div className="text-center text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link href="/login" data-testid="link-login">
-              <a className="underline hover:text-primary">Sign in</a>
+            <Link href="/login">
+              <span className="underline hover:text-primary cursor-pointer" data-testid="link-login">Sign in</span>
             </Link>
           </div>
         </CardContent>

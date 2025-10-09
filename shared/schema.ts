@@ -33,15 +33,12 @@ export const insertUserSchema = createInsertSchema(users).omit({
   updatedAt: true,
 });
 
-export const signupSchema = insertUserSchema.extend({
-  password: z.string().min(8, "Password must be at least 8 characters"),
+export const signupSchema = z.object({
   email: z.string().email("Invalid email address"),
-}).pick({
-  email: true,
-  password: true,
-  firstName: true,
-  lastName: true,
-  username: true,
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  username: z.string().optional(),
 });
 
 export const loginSchema = z.object({
