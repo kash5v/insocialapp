@@ -218,23 +218,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post('/api/auth/login', (req, res, next) => {
+    console.log("[LOGIN] Login attempt received");
     try {
       loginSchema.parse(req.body);
+      console.log("[LOGIN] Request body validated successfully");
     } catch (error: any) {
+      console.log("[LOGIN] Request body validation failed:", error.errors?.[0]?.message);
       return res.status(400).json({ message: error.errors[0].message });
     }
 
     passport.authenticate('local', (err: any, user: any, info: any) => {
       if (err) {
+        console.error("[LOGIN] Passport authentication error:", err);
+        console.error("[LOGIN] Error details:", err instanceof Error ? err.message : err);
+        console.error("[LOGIN] Error stack:", err instanceof Error ? err.stack : 'No stack');
         return res.status(500).json({ message: "Authentication error" });
       }
       if (!user) {
+        console.log("[LOGIN] Authentication failed - no user returned");
+        console.log("[LOGIN] Info message:", info?.message);
         return res.status(401).json({ message: info?.message || "Invalid credentials" });
       }
+      console.log("[LOGIN] Passport authentication successful, calling req.login");
       req.login(user, (loginErr) => {
         if (loginErr) {
+          console.error("[LOGIN] req.login error:", loginErr);
           return res.status(500).json({ message: "Login failed" });
         }
+        console.log("[LOGIN] Login successful, sending user response");
         res.json(user);
       });
     })(req, res, next);

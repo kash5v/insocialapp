@@ -61,25 +61,38 @@ export async function setupAuth(app: Express) {
       { usernameField: "email" },
       async (email, password, done) => {
         try {
+          console.log("[AUTH] Starting authentication for email:", email);
+          
           const user = await storage.getUserByEmail(email);
+          console.log("[AUTH] User lookup result:", user ? "found" : "not found");
           
           if (!user) {
+            console.log("[AUTH] User not found, authentication failed");
             return done(null, false, { message: "Invalid email or password" });
           }
 
           if (!user.password) {
+            console.log("[AUTH] User has no password, authentication failed");
             return done(null, false, { message: "Invalid email or password" });
           }
 
+          console.log("[AUTH] Comparing passwords...");
           const isValid = await bcrypt.compare(password, user.password);
+          console.log("[AUTH] Password comparison result:", isValid);
+          
           if (!isValid) {
+            console.log("[AUTH] Invalid password, authentication failed");
             return done(null, false, { message: "Invalid email or password" });
           }
 
+          console.log("[AUTH] Creating user object without password...");
           const { password: _, ...userWithoutPassword } = user;
+          console.log("[AUTH] User object keys:", Object.keys(userWithoutPassword));
+          console.log("[AUTH] Authentication successful");
           return done(null, userWithoutPassword);
         } catch (error) {
-          console.error("Authentication error:", error);
+          console.error("[AUTH] Authentication error occurred:", error);
+          console.error("[AUTH] Error stack:", error instanceof Error ? error.stack : 'No stack trace');
           return done(error);
         }
       }
@@ -87,18 +100,23 @@ export async function setupAuth(app: Express) {
   );
 
   passport.serializeUser((user: any, done) => {
+    console.log("[AUTH] Serializing user with ID:", user?.id);
     done(null, user.id);
   });
 
   passport.deserializeUser(async (id: string, done) => {
     try {
+      console.log("[AUTH] Deserializing user with ID:", id);
       const user = await storage.getUser(id);
       if (user) {
+        console.log("[AUTH] User deserialized successfully");
         done(null, user);
       } else {
+        console.log("[AUTH] User not found during deserialization");
         done(null, false);
       }
     } catch (error) {
+      console.error("[AUTH] Deserialization error:", error);
       done(error);
     }
   });
