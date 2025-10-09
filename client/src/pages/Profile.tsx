@@ -1,4 +1,4 @@
-import { Settings, Archive, Bookmark, UserPlus, Users, Grid, Heart, Search, MapPin, Lock, Video, Share2, Crown, Camera, Tag, List, Film, Play, Copy, Check, LogOut, Edit } from "lucide-react";
+import { Settings, Archive, Bookmark, UserPlus, Users, Grid, Heart, Search, MapPin, Lock, Video, Share2, Crown, Camera, Tag, List, Film, Play, Copy, Check, LogOut, Edit, Bell } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,6 +21,8 @@ interface UserProfile {
   lastName: string | null;
   username: string | null;
   profileImageUrl: string | null;
+  bio: string | null;
+  location: string | null;
   followerCount: number;
   followingCount: number;
   isFollowing: boolean;
@@ -131,21 +133,21 @@ export default function Profile() {
         <div className="h-14 px-4 flex items-center justify-between max-w-2xl mx-auto">
           <h1 className="font-display font-bold text-xl gradient-text">@{username}</h1>
           <div className="flex items-center gap-2">
-            <Button 
-              size="icon" 
-              variant="ghost" 
-              onClick={handleLogout}
-              data-testid="button-logout"
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => {/* TODO: Add notification functionality */}}
+              data-testid="button-notifications"
             >
-              <LogOut className="w-5 h-5" />
+              <Bell className="w-5 h-5" />
             </Button>
             <Button
               size="icon"
               variant="ghost"
-              onClick={() => setLocation("/search")}
-              data-testid="button-search"
+              onClick={() => setLocation("/settings")}
+              data-testid="button-settings"
             >
-              <Search className="w-5 h-5" />
+              <Settings className="w-5 h-5" />
             </Button>
             <ThemeToggle />
           </div>
@@ -164,32 +166,23 @@ export default function Profile() {
             </Avatar>
             <div className="flex-1">
               <h2 className="font-display font-bold text-2xl text-foreground mb-1">{displayName}</h2>
-              <p className="text-sm text-muted-foreground mb-2">{user.email}</p>
               
-              {/* Unique User ID Badge */}
-              <div className="mb-3">
-                {userProfile?.numericId && (
-                  <div className="mb-2">
-                    <span className="text-xs font-mono text-muted-foreground">
-                      ID: {userProfile.numericId}
-                    </span>
-                  </div>
-                )}
-                <button
-                  onClick={copyUserId}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 hover-elevate active-elevate-2"
-                  data-testid="button-copy-user-id"
-                >
-                  <span className="text-xs font-mono text-primary font-semibold">
-                    UUID: {user.id.slice(0, 8)}...
+              {/* Bio */}
+              {user.bio && (
+                <p className="text-sm text-foreground mb-2" data-testid="profile-bio">
+                  {user.bio}
+                </p>
+              )}
+              
+              {/* Location */}
+              {user.location && (
+                <div className="flex items-center gap-1 mb-2">
+                  <MapPin className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground" data-testid="profile-location">
+                    {user.location}
                   </span>
-                  {copiedId ? (
-                    <Check className="w-3 h-3 text-primary" />
-                  ) : (
-                    <Copy className="w-3 h-3 text-primary" />
-                  )}
-                </button>
-              </div>
+                </div>
+              )}
               
               {/* Stats */}
               <div className="flex gap-4 mb-4">
@@ -225,11 +218,11 @@ export default function Profile() {
                 <Button 
                   variant="outline"
                   className="flex-1 gap-2 font-semibold"
-                  onClick={() => setLocation('/settings')}
-                  data-testid="button-settings"
+                  onClick={() => setLocation('/archive')}
+                  data-testid="button-share-profile"
                 >
-                  <Settings className="w-4 h-4" />
-                  Settings
+                  <Share2 className="w-4 h-4" />
+                  Share
                 </Button>
               </div>
             </div>

@@ -23,6 +23,8 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   username: text("username").unique(),
+  bio: text("bio"),
+  location: varchar("location"),
   isPremium: boolean("is_premium").default(false),
   emailVerified: boolean("email_verified").default(false),
   createdAt: timestamp("created_at").defaultNow(),
@@ -94,8 +96,10 @@ export const resetPasswordSchema = z.object({
 export const updateProfileSchema = z.object({
   firstName: z.string().optional().transform(val => val === "" ? undefined : val),
   lastName: z.string().optional().transform(val => val === "" ? undefined : val),
-  username: usernameValidation.optional(),
+  username: usernameValidation.optional().transform(val => val === "" ? undefined : val),
   profileImageUrl: z.string().optional().transform(val => val === "" ? undefined : val),
+  bio: z.string().max(500, "Bio cannot exceed 500 characters").optional().transform(val => val === "" ? undefined : val),
+  location: z.string().max(100, "Location cannot exceed 100 characters").optional().transform(val => val === "" ? undefined : val),
 });
 
 export const searchUsersSchema = z.object({

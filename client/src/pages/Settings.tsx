@@ -1,0 +1,220 @@
+import { ArrowLeft, LogOut, Bell, Lock, Eye, HelpCircle, Shield, Moon, Sun, Monitor, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
+import { useState } from "react";
+import BottomNavBar from "@/components/BottomNavBar";
+import ThemeToggle from "@/components/ThemeToggle";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+export default function Settings() {
+  const [, setLocation] = useLocation();
+  const { user } = useAuth();
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [privateAccount, setPrivateAccount] = useState(false);
+
+  const handleLogout = () => {
+    window.location.href = "/api/logout";
+  };
+
+  const settingsSections = [
+    {
+      title: "Account",
+      items: [
+        {
+          icon: Lock,
+          label: "Privacy",
+          description: "Manage your privacy settings",
+          action: () => {},
+          hasSwitch: false,
+        },
+        {
+          icon: Shield,
+          label: "Security",
+          description: "Password and authentication",
+          action: () => {},
+          hasSwitch: false,
+        },
+        {
+          icon: Eye,
+          label: "Private Account",
+          description: "Only approved followers can see your posts",
+          action: () => setPrivateAccount(!privateAccount),
+          hasSwitch: true,
+          switchValue: privateAccount,
+        },
+      ],
+    },
+    {
+      title: "Notifications",
+      items: [
+        {
+          icon: Bell,
+          label: "Push Notifications",
+          description: "Get notified about new activity",
+          action: () => setNotificationsEnabled(!notificationsEnabled),
+          hasSwitch: true,
+          switchValue: notificationsEnabled,
+        },
+      ],
+    },
+    {
+      title: "Support",
+      items: [
+        {
+          icon: HelpCircle,
+          label: "Help Center",
+          description: "Get help and support",
+          action: () => {},
+          hasSwitch: false,
+        },
+      ],
+    },
+  ];
+
+  return (
+    <div className="min-h-screen bg-background pb-20">
+      {/* Header */}
+      <header className="sticky top-0 z-40 glass-strong border-b border-white/10 backdrop-blur-xl">
+        <div className="h-14 px-4 flex items-center justify-between max-w-2xl mx-auto">
+          <div className="flex items-center gap-3">
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setLocation("/profile")}
+              data-testid="button-back"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="font-display font-bold text-xl">Settings</h1>
+          </div>
+          <ThemeToggle />
+        </div>
+      </header>
+
+      <div className="max-w-2xl mx-auto p-4 space-y-6">
+        {/* Account Info */}
+        <Card className="p-4">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-display text-2xl">
+              {user?.firstName?.[0] || user?.email?.[0] || 'U'}
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-foreground">
+                {user?.firstName && user?.lastName 
+                  ? `${user.firstName} ${user.lastName}` 
+                  : user?.firstName || 'User'}
+              </h3>
+              <p className="text-sm text-muted-foreground">{user?.email}</p>
+            </div>
+          </div>
+        </Card>
+
+        {/* Settings Sections */}
+        {settingsSections.map((section, idx) => (
+          <div key={idx} className="space-y-2">
+            <h2 className="text-sm font-semibold text-muted-foreground px-2">
+              {section.title}
+            </h2>
+            <Card className="divide-y">
+              {section.items.map((item, itemIdx) => (
+                <button
+                  key={itemIdx}
+                  onClick={item.action}
+                  className="w-full p-4 flex items-center gap-4 hover-elevate active-elevate-2 text-left"
+                  data-testid={`setting-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                >
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <item.icon className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-foreground">{item.label}</p>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {item.description}
+                    </p>
+                  </div>
+                  {item.hasSwitch ? (
+                    <Switch
+                      checked={item.switchValue}
+                      onCheckedChange={(checked) => item.action()}
+                      onClick={(e) => e.stopPropagation()}
+                      data-testid={`switch-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                    />
+                  ) : (
+                    <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                  )}
+                </button>
+              ))}
+            </Card>
+          </div>
+        ))}
+
+        {/* Logout Button */}
+        <Card className="p-4">
+          <button
+            onClick={() => setLogoutDialogOpen(true)}
+            className="w-full flex items-center gap-4 hover-elevate active-elevate-2 text-left"
+            data-testid="button-logout"
+          >
+            <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
+              <LogOut className="w-5 h-5 text-destructive" />
+            </div>
+            <div className="flex-1">
+              <p className="font-medium text-destructive">Log Out</p>
+              <p className="text-sm text-muted-foreground">
+                Sign out of your account
+              </p>
+            </div>
+          </button>
+        </Card>
+
+        {/* App Info */}
+        <div className="text-center py-8 space-y-2">
+          <p className="text-sm text-muted-foreground">Version 1.0.0</p>
+          <p className="text-xs text-muted-foreground">
+            Made with ❤️ by your team
+          </p>
+        </div>
+      </div>
+
+      <BottomNavBar />
+
+      {/* Logout Confirmation Dialog */}
+      <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You'll need to log back in to access your account.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-logout">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLogout}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-logout"
+            >
+              Log Out
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}

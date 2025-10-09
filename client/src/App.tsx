@@ -17,6 +17,7 @@ import Create from "@/pages/Create";
 import Messages from "@/pages/Messages";
 import Profile from "@/pages/Profile";
 import UserProfile from "@/pages/UserProfile";
+import Settings from "@/pages/Settings";
 import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
 
@@ -43,6 +44,7 @@ function Router() {
           <Route path="/messages" component={Messages} />
           <Route path="/profile" component={Profile} />
           <Route path="/profile/:userId" component={UserProfile} />
+          <Route path="/settings" component={Settings} />
         </>
       )}
       <Route component={NotFound} />
