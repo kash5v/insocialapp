@@ -10,6 +10,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Camera } from "lucide-react";
 import type { User } from "@shared/schema";
+import ImageCropDialog from "./ImageCropDialog";
 
 interface EditProfileDialogProps {
   open: boolean;
@@ -28,6 +29,8 @@ export default function EditProfileDialog({ open, onOpenChange, user }: EditProf
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>(user.profileImageUrl || "");
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [tempImageUrl, setTempImageUrl] = useState<string>("");
 
   const uploadImageMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -82,13 +85,24 @@ export default function EditProfileDialog({ open, onOpenChange, user }: EditProf
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setSelectedFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPreviewUrl(reader.result as string);
+        setTempImageUrl(reader.result as string);
+        setCropDialogOpen(true);
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleCropComplete = (croppedBlob: Blob) => {
+    const croppedFile = new File([croppedBlob], 'profile-image.jpg', { type: 'image/jpeg' });
+    setSelectedFile(croppedFile);
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewUrl(reader.result as string);
+    };
+    reader.readAsDataURL(croppedFile);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -232,6 +246,13 @@ export default function EditProfileDialog({ open, onOpenChange, user }: EditProf
           </div>
         </form>
       </DialogContent>
+      
+      <ImageCropDialog
+        open={cropDialogOpen}
+        onOpenChange={setCropDialogOpen}
+        imageUrl={tempImageUrl}
+        onCropComplete={handleCropComplete}
+      />
     </Dialog>
   );
 }
