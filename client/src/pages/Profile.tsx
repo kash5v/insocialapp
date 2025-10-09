@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import BottomNavBar from "@/components/BottomNavBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import EditProfileDialog from "@/components/EditProfileDialog";
+import FollowersDialog from "@/components/FollowersDialog";
+import FollowingDialog from "@/components/FollowingDialog";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
@@ -34,6 +36,8 @@ export default function Profile() {
   const { user, isLoading } = useAuth();
   const [copiedId, setCopiedId] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [followersDialogOpen, setFollowersDialogOpen] = useState(false);
+  const [followingDialogOpen, setFollowingDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const { data: userProfile, isLoading: isLoadingProfile } = useQuery<UserProfile>({
@@ -190,13 +194,21 @@ export default function Profile() {
                   <div className="font-display font-bold text-lg text-foreground">0</div>
                   <div className="text-xs text-muted-foreground">Posts</div>
                 </button>
-                <button className="text-center" data-testid="stat-followers">
+                <button 
+                  className="text-center" 
+                  data-testid="stat-followers"
+                  onClick={() => setFollowersDialogOpen(true)}
+                >
                   <div className="font-display font-bold text-lg text-foreground">
                     {userProfile?.followerCount?.toLocaleString() || '0'}
                   </div>
                   <div className="text-xs text-muted-foreground">Followers</div>
                 </button>
-                <button className="text-center" data-testid="stat-following">
+                <button 
+                  className="text-center" 
+                  data-testid="stat-following"
+                  onClick={() => setFollowingDialogOpen(true)}
+                >
                   <div className="font-display font-bold text-lg text-foreground">
                     {userProfile?.followingCount?.toLocaleString() || '0'}
                   </div>
@@ -501,11 +513,23 @@ export default function Profile() {
       <BottomNavBar />
       
       {user && (
-        <EditProfileDialog
-          open={editDialogOpen}
-          onOpenChange={setEditDialogOpen}
-          user={user}
-        />
+        <>
+          <EditProfileDialog
+            open={editDialogOpen}
+            onOpenChange={setEditDialogOpen}
+            user={user}
+          />
+          <FollowersDialog
+            open={followersDialogOpen}
+            onOpenChange={setFollowersDialogOpen}
+            userId={user.id}
+          />
+          <FollowingDialog
+            open={followingDialogOpen}
+            onOpenChange={setFollowingDialogOpen}
+            userId={user.id}
+          />
+        </>
       )}
     </div>
   );

@@ -9,7 +9,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import BottomNavBar from "@/components/BottomNavBar";
 import ThemeToggle from "@/components/ThemeToggle";
+import FollowersDialog from "@/components/FollowersDialog";
+import FollowingDialog from "@/components/FollowingDialog";
 import { ArrowLeft, Grid, List, Play, Film, Crown, Share2, Tag, Heart, MessageCircle } from "lucide-react";
+import { useState } from "react";
 
 interface UserProfileData {
   id: string;
@@ -30,6 +33,8 @@ export default function UserProfile() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const [followersDialogOpen, setFollowersDialogOpen] = useState(false);
+  const [followingDialogOpen, setFollowingDialogOpen] = useState(false);
 
   const { data: profileData, isLoading } = useQuery<UserProfileData>({
     queryKey: ['/api/users', userId],
@@ -167,13 +172,21 @@ export default function UserProfile() {
                   <div className="font-display font-bold text-lg text-foreground">0</div>
                   <div className="text-xs text-muted-foreground">Posts</div>
                 </button>
-                <button className="text-center" data-testid="stat-followers">
+                <button 
+                  className="text-center" 
+                  data-testid="stat-followers"
+                  onClick={() => setFollowersDialogOpen(true)}
+                >
                   <div className="font-display font-bold text-lg text-foreground">
                     {profileData.followerCount.toLocaleString()}
                   </div>
                   <div className="text-xs text-muted-foreground">Followers</div>
                 </button>
-                <button className="text-center" data-testid="stat-following">
+                <button 
+                  className="text-center" 
+                  data-testid="stat-following"
+                  onClick={() => setFollowingDialogOpen(true)}
+                >
                   <div className="font-display font-bold text-lg text-foreground">
                     {profileData.followingCount.toLocaleString()}
                   </div>
@@ -274,6 +287,21 @@ export default function UserProfile() {
       </div>
 
       <BottomNavBar />
+      
+      {userId && (
+        <>
+          <FollowersDialog
+            open={followersDialogOpen}
+            onOpenChange={setFollowersDialogOpen}
+            userId={userId}
+          />
+          <FollowingDialog
+            open={followingDialogOpen}
+            onOpenChange={setFollowingDialogOpen}
+            userId={userId}
+          />
+        </>
+      )}
     </div>
   );
 }
