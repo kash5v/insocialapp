@@ -150,7 +150,6 @@ export default function UserProfile() {
             </Button>
             <h1 className="font-display font-bold text-xl gradient-text">@{username}</h1>
           </div>
-          <ThemeToggle />
         </div>
       </header>
 

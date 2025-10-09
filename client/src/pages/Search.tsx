@@ -90,7 +90,6 @@ export default function Search() {
       <header className="sticky top-0 z-40 glass-strong border-b border-white/10 backdrop-blur-xl">
         <div className="h-14 px-4 flex items-center justify-between max-w-2xl mx-auto">
           <h1 className="font-display font-bold text-2xl gradient-text">Search</h1>
-          <ThemeToggle />
         </div>
       </header>
 

@@ -121,8 +121,7 @@ export default function Messages() {
           <div className="flex items-center gap-2">
             <Button 
               size="icon" 
-              variant="ghost" 
-              className="rounded-full"
+              variant="ghost"
               data-testid="action-camera"
             >
               <Camera className="w-5 h-5" />
@@ -143,7 +142,6 @@ export default function Messages() {
             >
               <Search className="w-5 h-5" />
             </Button>
-            <ThemeToggle />
           </div>
         </div>
       </header>

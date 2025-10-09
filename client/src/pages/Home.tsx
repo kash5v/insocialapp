@@ -233,7 +233,6 @@ export default function Home() {
             >
               <Bell className="w-5 h-5" />
             </Button>
-            <ThemeToggle />
           </div>
         </div>
       </header>

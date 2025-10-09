@@ -145,7 +145,6 @@ export default function Profile() {
             >
               <Settings className="w-5 h-5" />
             </Button>
-            <ThemeToggle />
           </div>
         </div>
       </header>
