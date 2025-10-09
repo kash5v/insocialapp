@@ -4,7 +4,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import BottomNavBar from "@/components/BottomNavBar";
-import ThemeToggle from "@/components/ThemeToggle";
 import { useLocation } from "wouter";
 
 export default function Messages() {

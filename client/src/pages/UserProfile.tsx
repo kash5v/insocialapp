@@ -8,10 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import BottomNavBar from "@/components/BottomNavBar";
-import ThemeToggle from "@/components/ThemeToggle";
 import FollowersDialog from "@/components/FollowersDialog";
 import FollowingDialog from "@/components/FollowingDialog";
-import { ArrowLeft, Grid, List, Play, Film, Crown, Share2, Tag, Heart, MessageCircle } from "lucide-react";
+import { ArrowLeft, Grid, List, Play, Film, Crown, Share2, Tag, Heart, MessageCircle, MapPin } from "lucide-react";
 import { useState } from "react";
 
 interface UserProfileData {
@@ -22,6 +21,8 @@ interface UserProfileData {
   lastName: string | null;
   username: string | null;
   profileImageUrl: string | null;
+  bio: string | null;
+  location: string | null;
   followerCount: number;
   followingCount: number;
   isFollowing: boolean;
@@ -165,6 +166,21 @@ export default function UserProfile() {
             <div className="flex-1">
               <h2 className="font-display font-bold text-2xl text-foreground mb-1">{displayName}</h2>
               <p className="text-sm text-muted-foreground mb-3">@{username}</p>
+              
+              {profileData.bio && (
+                <p className="text-sm text-foreground mb-2" data-testid="profile-bio">
+                  {profileData.bio}
+                </p>
+              )}
+              
+              {profileData.location && (
+                <div className="flex items-center gap-1 mb-3">
+                  <MapPin className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground" data-testid="profile-location">
+                    {profileData.location}
+                  </span>
+                </div>
+              )}
               
               <div className="flex gap-4 mb-4">
                 <button className="text-center" data-testid="stat-posts">

@@ -42,6 +42,7 @@ export default function Settings() {
       const response = await fetch("/api/users/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ privateAccount: isPrivate }),
       });
       if (!response.ok) throw new Error("Failed to update privacy");

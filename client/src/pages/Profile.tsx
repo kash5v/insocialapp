@@ -5,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import BottomNavBar from "@/components/BottomNavBar";
-import ThemeToggle from "@/components/ThemeToggle";
 import EditProfileDialog from "@/components/EditProfileDialog";
 import FollowersDialog from "@/components/FollowersDialog";
 import FollowingDialog from "@/components/FollowingDialog";

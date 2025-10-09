@@ -7,7 +7,6 @@ import StoryRing from "@/components/StoryRing";
 import StoryViewer, { StoryUser } from "@/components/StoryViewer";
 import FeedPost from "@/components/FeedPost";
 import BottomNavBar from "@/components/BottomNavBar";
-import ThemeToggle from "@/components/ThemeToggle";
 import { useLocation } from "wouter";
 
 export default function Home() {

@@ -53,19 +53,20 @@ export default function ImageCropDialog({ open, onOpenChange, imageUrl, onCropCo
     const scaleX = image.naturalWidth / image.width;
     const scaleY = image.naturalHeight / image.height;
 
-    canvas.width = completedCrop.width;
-    canvas.height = completedCrop.height;
+    const size = Math.min(completedCrop.width, completedCrop.height);
+    canvas.width = size;
+    canvas.height = size;
 
     ctx.drawImage(
       image,
       completedCrop.x * scaleX,
       completedCrop.y * scaleY,
-      completedCrop.width * scaleX,
-      completedCrop.height * scaleY,
+      size * scaleX,
+      size * scaleY,
       0,
       0,
-      completedCrop.width,
-      completedCrop.height
+      size,
+      size
     );
 
     return new Promise((resolve) => {
