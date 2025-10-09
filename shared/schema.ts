@@ -26,6 +26,7 @@ export const users = pgTable("users", {
   bio: text("bio"),
   location: varchar("location"),
   isPremium: boolean("is_premium").default(false),
+  privateAccount: boolean("private_account").default(false),
   emailVerified: boolean("email_verified").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -100,6 +101,7 @@ export const updateProfileSchema = z.object({
   profileImageUrl: z.string().optional().transform(val => val === "" ? undefined : val),
   bio: z.string().max(500, "Bio cannot exceed 500 characters").optional().transform(val => val === "" ? undefined : val),
   location: z.string().max(100, "Location cannot exceed 100 characters").optional().transform(val => val === "" ? undefined : val),
+  privateAccount: z.boolean().optional(),
 });
 
 export const searchUsersSchema = z.object({
