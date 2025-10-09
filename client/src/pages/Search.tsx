@@ -10,12 +10,14 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 import type { User } from "@shared/schema";
 
 export default function Search() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -226,7 +228,7 @@ export default function Search() {
                   <Button 
                     size="sm" 
                     variant="outline" 
-                    onClick={() => window.location.href = `/profile/${user.id}`}
+                    onClick={() => setLocation(`/profile/${user.id}`)}
                     data-testid={`view-${username}`}
                   >
                     View

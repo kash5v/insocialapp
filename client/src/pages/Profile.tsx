@@ -1,4 +1,4 @@
-import { Settings, Archive, Bookmark, UserPlus, Users, Grid, Heart, Search, MapPin, Lock, Video, Share2, Crown, Camera, Tag, List, Film, Play, Copy, Check, LogOut } from "lucide-react";
+import { Settings, Archive, Bookmark, UserPlus, Users, Grid, Heart, Search, MapPin, Lock, Video, Share2, Crown, Camera, Tag, List, Film, Play, Copy, Check, LogOut, Edit } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -6,19 +6,35 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import BottomNavBar from "@/components/BottomNavBar";
 import ThemeToggle from "@/components/ThemeToggle";
+import EditProfileDialog from "@/components/EditProfileDialog";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 
+interface UserProfile {
+  id: string;
+  numericId: number;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  username: string | null;
+  profileImageUrl: string | null;
+  followerCount: number;
+  followingCount: number;
+  isFollowing: boolean;
+  isOwnProfile: boolean;
+}
+
 export default function Profile() {
   const [, setLocation] = useLocation();
   const { user, isLoading } = useAuth();
   const [copiedId, setCopiedId] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const { toast } = useToast();
 
-  const { data: userProfile, isLoading: isLoadingProfile } = useQuery({
+  const { data: userProfile, isLoading: isLoadingProfile } = useQuery<UserProfile>({
     queryKey: ['/api/users', user?.id],
     enabled: !!user?.id,
   });
@@ -200,17 +216,20 @@ export default function Profile() {
                 <Button 
                   variant="outline" 
                   className="flex-1 gap-2 font-semibold" 
-                  data-testid="button-follow"
+                  onClick={() => setEditDialogOpen(true)}
+                  data-testid="button-edit-profile"
                 >
-                  <Users className="w-4 h-4" />
-                  Follow
+                  <Edit className="w-4 h-4" />
+                  Edit Profile
                 </Button>
                 <Button 
-                  className="flex-1 gap-2 bg-gradient-to-r from-primary to-accent text-white border-0 font-semibold hover:opacity-90"
-                  data-testid="button-add-plus"
+                  variant="outline"
+                  className="flex-1 gap-2 font-semibold"
+                  onClick={() => setLocation('/settings')}
+                  data-testid="button-settings"
                 >
-                  <UserPlus className="w-4 h-4" />
-                  Add+
+                  <Settings className="w-4 h-4" />
+                  Settings
                 </Button>
               </div>
             </div>
@@ -487,6 +506,14 @@ export default function Profile() {
       </div>
 
       <BottomNavBar />
+      
+      {user && (
+        <EditProfileDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          user={user}
+        />
+      )}
     </div>
   );
 }

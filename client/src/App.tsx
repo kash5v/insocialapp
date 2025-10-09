@@ -16,6 +16,7 @@ import Watch from "@/pages/Watch";
 import Create from "@/pages/Create";
 import Messages from "@/pages/Messages";
 import Profile from "@/pages/Profile";
+import UserProfile from "@/pages/UserProfile";
 import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
 
@@ -41,6 +42,7 @@ function Router() {
           <Route path="/create" component={Create} />
           <Route path="/messages" component={Messages} />
           <Route path="/profile" component={Profile} />
+          <Route path="/profile/:userId" component={UserProfile} />
         </>
       )}
       <Route component={NotFound} />
