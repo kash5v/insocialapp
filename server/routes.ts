@@ -4,7 +4,8 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
 import passport from "passport";
 import bcrypt from "bcryptjs";
-import { signupSchema, loginSchema } from "@shared/schema";
+import { signupSchema, loginSchema, verifyOtpSchema, forgotPasswordSchema, resetPasswordSchema } from "@shared/schema";
+import { sendOtpEmail, generateOtp } from "./email";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
@@ -40,7 +41,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastName: validatedData.lastName,
         username: validatedData.username,
         provider: "email",
+        emailVerified: false,
       });
+
+      const otp = generateOtp();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+      
+      await storage.createOtp(validatedData.email, otp, 'verification', expiresAt);
+      await sendOtpEmail(validatedData.email, otp, 'verification');
 
       const { password: _, ...userWithoutPassword } = createdUser as any;
 
@@ -48,7 +56,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (err) {
           return res.status(500).json({ message: "Login failed after signup" });
         }
-        res.json(userWithoutPassword);
+        res.json({ ...userWithoutPassword, requiresVerification: true });
       });
     } catch (error: any) {
       if (error.name === 'ZodError') {
@@ -56,6 +64,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.error("Signup error:", error);
       res.status(500).json({ message: "Signup failed" });
+    }
+  });
+
+  app.post('/api/auth/verify-email', async (req, res) => {
+    try {
+      const validatedData = verifyOtpSchema.parse(req.body);
+      
+      const isValid = await storage.verifyOtp(
+        validatedData.email, 
+        validatedData.code, 
+        'verification'
+      );
+
+      if (!isValid) {
+        return res.status(400).json({ message: "Invalid or expired verification code" });
+      }
+
+      await storage.verifyUserEmail(validatedData.email);
+      await storage.deleteOtpsByEmail(validatedData.email);
+
+      res.json({ message: "Email verified successfully" });
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      console.error("Verification error:", error);
+      res.status(500).json({ message: "Verification failed" });
+    }
+  });
+
+  app.post('/api/auth/resend-otp', async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.emailVerified) {
+        return res.status(400).json({ message: "Email already verified" });
+      }
+
+      await storage.deleteOtpsByEmail(email);
+
+      const otp = generateOtp();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+      
+      await storage.createOtp(email, otp, 'verification', expiresAt);
+      await sendOtpEmail(email, otp, 'verification');
+
+      res.json({ message: "Verification code sent successfully" });
+    } catch (error) {
+      console.error("Resend OTP error:", error);
+      res.status(500).json({ message: "Failed to resend verification code" });
+    }
+  });
+
+  app.post('/api/auth/forgot-password', async (req, res) => {
+    try {
+      const validatedData = forgotPasswordSchema.parse(req.body);
+      
+      const user = await storage.getUserByEmail(validatedData.email);
+      if (!user) {
+        return res.json({ message: "If the email exists, a reset code has been sent" });
+      }
+
+      await storage.deleteOtpsByEmail(validatedData.email);
+
+      const otp = generateOtp();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+      
+      await storage.createOtp(validatedData.email, otp, 'reset', expiresAt);
+      await sendOtpEmail(validatedData.email, otp, 'reset');
+
+      res.json({ message: "If the email exists, a reset code has been sent" });
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      console.error("Forgot password error:", error);
+      res.status(500).json({ message: "Failed to process request" });
+    }
+  });
+
+  app.post('/api/auth/reset-password', async (req, res) => {
+    try {
+      const validatedData = resetPasswordSchema.parse(req.body);
+      
+      const isValid = await storage.verifyOtp(
+        validatedData.email, 
+        validatedData.code, 
+        'reset'
+      );
+
+      if (!isValid) {
+        return res.status(400).json({ message: "Invalid or expired reset code" });
+      }
+
+      const hashedPassword = await bcrypt.hash(validatedData.newPassword, 10);
+      await storage.updateUserPassword(validatedData.email, hashedPassword);
+      await storage.deleteOtpsByEmail(validatedData.email);
+
+      res.json({ message: "Password reset successfully" });
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      console.error("Reset password error:", error);
+      res.status(500).json({ message: "Failed to reset password" });
     }
   });
 
