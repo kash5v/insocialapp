@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./auth";
 import passport from "passport";
 import bcrypt from "bcryptjs";
-import { signupSchema, loginSchema, verifyOtpSchema, forgotPasswordSchema, resetPasswordSchema } from "@shared/schema";
+import { signupSchema, loginSchema, verifyOtpSchema, forgotPasswordSchema, resetPasswordSchema, updateProfileSchema, searchUsersSchema } from "@shared/schema";
 import { sendOtpEmail, generateOtp } from "./email";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -211,6 +211,159 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json({ message: "Logged out successfully" });
     });
+  });
+
+  app.get('/api/users/search', isAuthenticated, async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      if (!query || query.trim() === '') {
+        return res.json([]);
+      }
+      
+      const users = await storage.searchUsers(query.trim());
+      res.json(users);
+    } catch (error) {
+      console.error("User search error:", error);
+      res.status(500).json({ message: "Failed to search users" });
+    }
+  });
+
+  app.get('/api/users/:userId', isAuthenticated, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const currentUserId = (req.user as any).id;
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const [followerCount, followingCount, isFollowing] = await Promise.all([
+        storage.getFollowerCount(userId),
+        storage.getFollowingCount(userId),
+        storage.isFollowing(currentUserId, userId)
+      ]);
+
+      res.json({
+        ...user,
+        followerCount,
+        followingCount,
+        isFollowing,
+        isOwnProfile: currentUserId === userId
+      });
+    } catch (error) {
+      console.error("Get user error:", error);
+      res.status(500).json({ message: "Failed to get user" });
+    }
+  });
+
+  app.get('/api/users/username/:username', isAuthenticated, async (req, res) => {
+    try {
+      const { username } = req.params;
+      const currentUserId = (req.user as any).id;
+      
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const [followerCount, followingCount, isFollowing] = await Promise.all([
+        storage.getFollowerCount(user.id),
+        storage.getFollowingCount(user.id),
+        storage.isFollowing(currentUserId, user.id)
+      ]);
+
+      res.json({
+        ...user,
+        followerCount,
+        followingCount,
+        isFollowing,
+        isOwnProfile: currentUserId === user.id
+      });
+    } catch (error) {
+      console.error("Get user by username error:", error);
+      res.status(500).json({ message: "Failed to get user" });
+    }
+  });
+
+  app.put('/api/users/profile', isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const validatedData = updateProfileSchema.parse(req.body);
+      
+      if (validatedData.username) {
+        const existingUser = await storage.getUserByUsername(validatedData.username);
+        if (existingUser && existingUser.id !== userId) {
+          return res.status(400).json({ message: "Username already taken" });
+        }
+      }
+
+      const updatedUser = await storage.updateProfile(userId, validatedData);
+      res.json(updatedUser);
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      console.error("Update profile error:", error);
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
+  app.post('/api/users/:userId/follow', isAuthenticated, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const followerId = (req.user as any).id;
+
+      if (followerId === userId) {
+        return res.status(400).json({ message: "Cannot follow yourself" });
+      }
+
+      const userToFollow = await storage.getUser(userId);
+      if (!userToFollow) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      await storage.followUser(followerId, userId);
+      res.json({ message: "User followed successfully" });
+    } catch (error) {
+      console.error("Follow user error:", error);
+      res.status(500).json({ message: "Failed to follow user" });
+    }
+  });
+
+  app.delete('/api/users/:userId/follow', isAuthenticated, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const followerId = (req.user as any).id;
+
+      await storage.unfollowUser(followerId, userId);
+      res.json({ message: "User unfollowed successfully" });
+    } catch (error) {
+      console.error("Unfollow user error:", error);
+      res.status(500).json({ message: "Failed to unfollow user" });
+    }
+  });
+
+  app.get('/api/users/:userId/followers', isAuthenticated, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const followers = await storage.getFollowers(userId);
+      res.json(followers);
+    } catch (error) {
+      console.error("Get followers error:", error);
+      res.status(500).json({ message: "Failed to get followers" });
+    }
+  });
+
+  app.get('/api/users/:userId/following', isAuthenticated, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const following = await storage.getFollowing(userId);
+      res.json(following);
+    } catch (error) {
+      console.error("Get following error:", error);
+      res.status(500).json({ message: "Failed to get following" });
+    }
   });
 
   return httpServer;
