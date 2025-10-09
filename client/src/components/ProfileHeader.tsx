@@ -3,8 +3,10 @@ import { Button } from "@/components/ui/button";
 import VerificationBadge from "@/components/VerificationBadge";
 
 interface ProfileHeaderProps {
+  userId: string;
   displayName: string;
   username: string;
+  numericId?: number;
   avatar?: string;
   bio?: string;
   verificationType?: "government" | "professional" | "individual" | null;
@@ -15,11 +17,14 @@ interface ProfileHeaderProps {
   isOwnProfile?: boolean;
   isFollowing?: boolean;
   isFriend?: boolean;
+  onFollowToggle?: () => void;
 }
 
 export default function ProfileHeader({
+  userId,
   displayName,
   username,
+  numericId,
   avatar,
   bio,
   verificationType,
@@ -30,6 +35,7 @@ export default function ProfileHeader({
   isOwnProfile = false,
   isFollowing = false,
   isFriend = false,
+  onFollowToggle,
 }: ProfileHeaderProps) {
   return (
     <div className="space-y-4" data-testid="profile-header">
@@ -68,6 +74,11 @@ export default function ProfileHeader({
         <p className="text-sm text-muted-foreground font-mono" data-testid="profile-username">
           @{username}
         </p>
+        {isOwnProfile && numericId && (
+          <p className="text-xs text-muted-foreground" data-testid="profile-numeric-id">
+            ID: {numericId}
+          </p>
+        )}
         {bio && (
           <p className="text-sm text-foreground pt-1" data-testid="profile-bio">
             {bio}
@@ -86,7 +97,7 @@ export default function ProfileHeader({
             <Button
               variant={isFollowing ? "outline" : "default"}
               className="flex-1"
-              onClick={() => console.log("Follow clicked")}
+              onClick={onFollowToggle}
               data-testid="button-follow"
             >
               {isFollowing ? "Following" : "Follow"}

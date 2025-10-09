@@ -10,12 +10,18 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Profile() {
   const [, setLocation] = useLocation();
   const { user, isLoading } = useAuth();
   const [copiedId, setCopiedId] = useState(false);
   const { toast } = useToast();
+
+  const { data: userProfile, isLoading: isLoadingProfile } = useQuery({
+    queryKey: ['/api/users', user?.id],
+    enabled: !!user?.id,
+  });
 
   const copyUserId = () => {
     if (user?.id) {
@@ -33,7 +39,7 @@ export default function Profile() {
     window.location.href = "/api/logout";
   };
 
-  if (isLoading) {
+  if (isLoading || isLoadingProfile) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -146,13 +152,20 @@ export default function Profile() {
               
               {/* Unique User ID Badge */}
               <div className="mb-3">
+                {userProfile?.numericId && (
+                  <div className="mb-2">
+                    <span className="text-xs font-mono text-muted-foreground">
+                      ID: {userProfile.numericId}
+                    </span>
+                  </div>
+                )}
                 <button
                   onClick={copyUserId}
                   className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 hover-elevate active-elevate-2"
                   data-testid="button-copy-user-id"
                 >
                   <span className="text-xs font-mono text-primary font-semibold">
-                    ID: {user.id.slice(0, 8)}...
+                    UUID: {user.id.slice(0, 8)}...
                   </span>
                   {copiedId ? (
                     <Check className="w-3 h-3 text-primary" />
@@ -165,20 +178,20 @@ export default function Profile() {
               {/* Stats */}
               <div className="flex gap-4 mb-4">
                 <button className="text-center" data-testid="stat-posts">
-                  <div className="font-display font-bold text-lg text-foreground">342</div>
+                  <div className="font-display font-bold text-lg text-foreground">0</div>
                   <div className="text-xs text-muted-foreground">Posts</div>
                 </button>
                 <button className="text-center" data-testid="stat-followers">
-                  <div className="font-display font-bold text-lg text-foreground">15.4K</div>
+                  <div className="font-display font-bold text-lg text-foreground">
+                    {userProfile?.followerCount?.toLocaleString() || '0'}
+                  </div>
                   <div className="text-xs text-muted-foreground">Followers</div>
                 </button>
                 <button className="text-center" data-testid="stat-following">
-                  <div className="font-display font-bold text-lg text-foreground">892</div>
+                  <div className="font-display font-bold text-lg text-foreground">
+                    {userProfile?.followingCount?.toLocaleString() || '0'}
+                  </div>
                   <div className="text-xs text-muted-foreground">Following</div>
-                </button>
-                <button className="text-center" data-testid="stat-added">
-                  <div className="font-display font-bold text-lg text-foreground">156</div>
-                  <div className="text-xs text-muted-foreground">Added</div>
                 </button>
               </div>
 
