@@ -7,33 +7,57 @@ import {
   type UpsertUser,
 } from "@shared/schema";
 
+type UserWithPassword = User & { password: string | null };
+
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
-  getUserByEmail(email: string): Promise<any | undefined>;
+  getUserByEmail(email: string): Promise<UserWithPassword | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  createUser(user: InsertUser): Promise<UserWithPassword>;
   upsertUser(user: UpsertUser): Promise<User>;
 }
 
 export class DbStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    const result = await db.select({
+      id: users.id,
+      email: users.email,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      profileImageUrl: users.profileImageUrl,
+      username: users.username,
+      isPremium: users.isPremium,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+      provider: users.provider,
+    }).from(users).where(eq(users.id, id)).limit(1);
     return result[0];
   }
 
-  async getUserByEmail(email: string): Promise<any | undefined> {
+  async getUserByEmail(email: string): Promise<UserWithPassword | undefined> {
     const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
-    return result[0];
+    return result[0] as UserWithPassword;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    const result = await db.select({
+      id: users.id,
+      email: users.email,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      profileImageUrl: users.profileImageUrl,
+      username: users.username,
+      isPremium: users.isPremium,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+      provider: users.provider,
+    }).from(users).where(eq(users.username, username)).limit(1);
     return result[0];
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async createUser(insertUser: InsertUser): Promise<UserWithPassword> {
     const result = await db.insert(users).values(insertUser).returning();
-    return result[0];
+    return result[0] as UserWithPassword;
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
@@ -47,7 +71,18 @@ export class DbStorage implements IStorage {
           updatedAt: new Date(),
         },
       })
-      .returning();
+      .returning({
+        id: users.id,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        profileImageUrl: users.profileImageUrl,
+        username: users.username,
+        isPremium: users.isPremium,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+        provider: users.provider,
+      });
     return user;
   }
 }

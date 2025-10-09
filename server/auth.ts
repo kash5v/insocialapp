@@ -1,12 +1,10 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import connectPg from "connect-pg-simple";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
-import type { User } from "@shared/schema";
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000;
@@ -70,7 +68,7 @@ export async function setupAuth(app: Express) {
           }
 
           if (!user.password) {
-            return done(null, false, { message: "Please use Google sign in" });
+            return done(null, false, { message: "Invalid email or password" });
           }
 
           const isValid = await bcrypt.compare(password, user.password);
@@ -87,53 +85,6 @@ export async function setupAuth(app: Express) {
     )
   );
 
-  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-    const callbackURL = process.env.NODE_ENV === "production"
-      ? `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}/api/auth/google/callback`
-      : `http://localhost:5000/api/auth/google/callback`;
-
-    passport.use(
-      new GoogleStrategy(
-        {
-          clientID: process.env.GOOGLE_CLIENT_ID,
-          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-          callbackURL,
-        },
-        async (accessToken, refreshToken, profile, done) => {
-          try {
-            const email = profile.emails?.[0]?.value;
-            if (!email) {
-              return done(new Error("No email found in Google profile"));
-            }
-
-            let user = await storage.getUserByEmail(email);
-
-            if (!user) {
-              const username = await generateUniqueUsername(
-                email,
-                profile.name?.givenName
-              );
-
-              user = await storage.createUser({
-                email,
-                firstName: profile.name?.givenName,
-                lastName: profile.name?.familyName,
-                profileImageUrl: profile.photos?.[0]?.value,
-                username,
-                provider: "google",
-              });
-            }
-
-            const { password: _, ...userWithoutPassword } = user;
-            return done(null, userWithoutPassword);
-          } catch (error) {
-            return done(error as Error);
-          }
-        }
-      )
-    );
-  }
-
   passport.serializeUser((user: any, done) => {
     done(null, user.id);
   });
@@ -142,8 +93,7 @@ export async function setupAuth(app: Express) {
     try {
       const user = await storage.getUser(id);
       if (user) {
-        const { password: _, ...userWithoutPassword } = user as any;
-        done(null, userWithoutPassword);
+        done(null, user);
       } else {
         done(null, false);
       }

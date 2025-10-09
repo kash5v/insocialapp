@@ -33,7 +33,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const hashedPassword = await bcrypt.hash(validatedData.password, 10);
       
-      const user = await storage.createUser({
+      const createdUser = await storage.createUser({
         email: validatedData.email,
         password: hashedPassword,
         firstName: validatedData.firstName,
@@ -42,11 +42,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         provider: "email",
       });
 
-      req.login(user, (err) => {
+      const { password: _, ...userWithoutPassword } = createdUser as any;
+
+      req.login(userWithoutPassword, (err) => {
         if (err) {
           return res.status(500).json({ message: "Login failed after signup" });
         }
-        const { password: _, ...userWithoutPassword } = user as any;
         res.json(userWithoutPassword);
       });
     } catch (error: any) {
@@ -80,19 +81,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     })(req, res, next);
   });
-
-  app.get('/api/auth/google', 
-    passport.authenticate('google', { scope: ['profile', 'email'] })
-  );
-
-  app.get('/api/auth/google/callback',
-    passport.authenticate('google', { 
-      failureRedirect: '/login?error=google_auth_failed' 
-    }),
-    (req, res) => {
-      res.redirect('/');
-    }
-  );
 
   app.post('/api/auth/logout', (req, res) => {
     req.logout((err) => {
