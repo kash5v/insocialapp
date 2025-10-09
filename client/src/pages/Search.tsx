@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search as SearchIcon, Hash, Users, Grid3x3, Music, AtSign } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,9 +7,32 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import BottomNavBar from "@/components/BottomNavBar";
 import ThemeToggle from "@/components/ThemeToggle";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import type { User } from "@shared/schema";
 
 export default function Search() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const { data: searchResults = [], isLoading: isSearching } = useQuery<User[]>({
+    queryKey: ['/api/users/search', debouncedQuery],
+    enabled: debouncedQuery.length > 0,
+    queryFn: async () => {
+      const response = await fetch(`/api/users/search?q=${encodeURIComponent(debouncedQuery)}`);
+      if (!response.ok) throw new Error('Search failed');
+      return response.json();
+    }
+  });
 
   const channels = [
     { name: "Tech News India", handle: "tech_news", members: "125K", description: "Latest technology updates from India" },
@@ -160,33 +183,58 @@ export default function Search() {
         </TabsContent>
 
         <TabsContent value="accounts" className="mt-0 p-4 space-y-3">
-          {accounts.map((account) => (
-            <div key={account.username} className="flex items-center justify-between" data-testid={`account-${account.username}`}>
-              <div className="flex items-center gap-3">
-                <Avatar className="w-12 h-12">
-                  <AvatarImage src={account.avatarUrl} />
-                  <AvatarFallback className="bg-primary text-white">
-                    {account.name.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <div className="flex items-center gap-1">
-                    <h3 className="font-display font-bold text-foreground">{account.name}</h3>
-                    {account.verified && (
-                      <svg className="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground">@{account.username}</p>
-                  <p className="text-xs text-muted-foreground">{account.followers} followers</p>
-                </div>
-              </div>
-              <Button size="sm" variant="outline" data-testid={`follow-${account.username}`}>
-                Follow
-              </Button>
+          {isSearching ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+              <p className="text-muted-foreground mt-2">Searching...</p>
             </div>
-          ))}
+          ) : searchResults.length === 0 && debouncedQuery.length > 0 ? (
+            <div className="text-center py-8">
+              <Users className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+              <p className="text-muted-foreground">No users found</p>
+              <p className="text-xs text-muted-foreground mt-1">Try searching by username or numeric ID</p>
+            </div>
+          ) : debouncedQuery.length === 0 ? (
+            <div className="text-center py-8">
+              <SearchIcon className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+              <p className="text-muted-foreground">Search for users</p>
+              <p className="text-xs text-muted-foreground mt-1">Enter a username or numeric ID</p>
+            </div>
+          ) : (
+            searchResults.map((user) => {
+              const displayName = user.firstName && user.lastName 
+                ? `${user.firstName} ${user.lastName}` 
+                : user.firstName || user.email?.split('@')[0] || 'User';
+              const username = user.username || user.email?.split('@')[0] || 'user';
+              const initials = (user.firstName?.[0] || '') + (user.lastName?.[0] || user.email?.[0] || 'U');
+
+              return (
+                <div key={user.id} className="flex items-center justify-between" data-testid={`account-${username}`}>
+                  <div className="flex items-center gap-3">
+                    <Avatar className="w-12 h-12">
+                      <AvatarImage src={user.profileImageUrl || undefined} />
+                      <AvatarFallback className="bg-primary text-white">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <h3 className="font-display font-bold text-foreground">{displayName}</h3>
+                      <p className="text-sm text-muted-foreground">@{username}</p>
+                      <p className="text-xs text-muted-foreground">ID: {user.numericId}</p>
+                    </div>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => window.location.href = `/profile/${user.id}`}
+                    data-testid={`view-${username}`}
+                  >
+                    View
+                  </Button>
+                </div>
+              );
+            })
+          )}
         </TabsContent>
 
         <TabsContent value="hashtags" className="mt-0 p-4 space-y-3">
