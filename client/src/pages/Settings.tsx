@@ -5,9 +5,12 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import BottomNavBar from "@/components/BottomNavBar";
 import { useTheme } from "@/hooks/useTheme";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,9 +26,49 @@ export default function Settings() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
+  const { toast } = useToast();
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [privateAccount, setPrivateAccount] = useState(false);
+  const [privateAccount, setPrivateAccount] = useState(user?.privateAccount ?? false);
+
+  useEffect(() => {
+    if (user?.privateAccount !== undefined && user?.privateAccount !== null) {
+      setPrivateAccount(user.privateAccount);
+    }
+  }, [user?.privateAccount]);
+
+  const updatePrivacyMutation = useMutation({
+    mutationFn: async (isPrivate: boolean) => {
+      const response = await fetch("/api/users/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ privateAccount: isPrivate }),
+      });
+      if (!response.ok) throw new Error("Failed to update privacy");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      toast({
+        title: "Privacy updated",
+        description: `Your account is now ${privateAccount ? 'private' : 'public'}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update privacy settings",
+        variant: "destructive",
+      });
+      setPrivateAccount(!privateAccount);
+    },
+  });
+
+  const handlePrivacyToggle = () => {
+    const newValue = !privateAccount;
+    setPrivateAccount(newValue);
+    updatePrivacyMutation.mutate(newValue);
+  };
 
   const handleLogout = () => {
     window.location.href = "/api/logout";
@@ -59,8 +102,8 @@ export default function Settings() {
         },
         {
           icon: Hash,
-          label: "UUID",
-          description: user?.uuid || "N/A",
+          label: "User UUID",
+          description: user?.id || "N/A",
           action: () => {},
           hasSwitch: false,
           type: "info" as const,
@@ -90,7 +133,7 @@ export default function Settings() {
           icon: Eye,
           label: "Private Account",
           description: "Only approved followers can see your posts",
-          action: () => setPrivateAccount(!privateAccount),
+          action: handlePrivacyToggle,
           hasSwitch: true,
           switchValue: privateAccount,
           type: "action" as const,
@@ -217,7 +260,7 @@ export default function Settings() {
                       {item.description}
                     </p>
                   </div>
-                  {item.hasSwitch ? (
+                  {item.hasSwitch && 'switchValue' in item ? (
                     <Switch
                       checked={item.switchValue}
                       onCheckedChange={(checked) => item.action()}
