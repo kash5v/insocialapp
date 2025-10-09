@@ -1,16 +1,48 @@
-import { useState } from "react";
-import { Search, Plus, Camera, MessageSquare, Users, Hash, StickyNote, Phone, PhoneMissed, Star, Flame } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Plus, Camera, MessageSquare, Users, Hash, StickyNote, Phone, PhoneMissed, Star, Flame, Plug } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import BottomNavBar from "@/components/BottomNavBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import MatrixSetup from "@/components/MatrixSetup";
+import { useMatrixWebSocket } from "@/hooks/use-matrix-websocket";
+
+interface MatrixRoom {
+  roomId: string;
+  name: string;
+  topic?: string;
+  avatarUrl?: string;
+  memberCount: number;
+  lastMessage?: string;
+  lastActivity: Date;
+  unreadCount: number;
+  isEncrypted: boolean;
+  isDirect: boolean;
+}
 
 export default function Messages() {
   const [mainTab, setMainTab] = useState("chat");
   const [chatSubTab, setChatSubTab] = useState("direct");
   const [, setLocation] = useLocation();
+  const [showMatrixSetup, setShowMatrixSetup] = useState(false);
+  const [matrixUserId, setMatrixUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const userId = localStorage.getItem('matrix_user_id');
+    if (userId) {
+      setMatrixUserId(userId);
+    }
+  }, []);
+
+  const { connected } = useMatrixWebSocket(matrixUserId);
+
+  const { data: matrixRooms = [], isLoading: roomsLoading } = useQuery<MatrixRoom[]>({
+    queryKey: ['/api/matrix/rooms', matrixUserId],
+    enabled: !!matrixUserId,
+  });
 
   const chats = [
     {
@@ -119,22 +151,37 @@ export default function Messages() {
         <div className="h-14 px-4 flex items-center justify-between max-w-2xl mx-auto">
           <h1 className="font-display font-bold text-2xl gradient-text">Messages</h1>
           <div className="flex items-center gap-2">
-            <Button 
-              size="icon" 
-              variant="ghost" 
-              className="rounded-full"
-              data-testid="action-camera"
-            >
-              <Camera className="w-5 h-5" />
-            </Button>
-            <Button 
-              size="icon" 
-              variant="ghost" 
-              className="rounded-full"
-              data-testid="action-new-chat"
-            >
-              <Plus className="w-5 h-5" />
-            </Button>
+            {!matrixUserId && (
+              <Button 
+                size="sm" 
+                variant="default"
+                onClick={() => setShowMatrixSetup(true)}
+                data-testid="button-connect-matrix"
+              >
+                <Plug className="w-4 h-4 mr-2" />
+                Connect Matrix
+              </Button>
+            )}
+            {matrixUserId && (
+              <>
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="rounded-full"
+                  data-testid="action-camera"
+                >
+                  <Camera className="w-5 h-5" />
+                </Button>
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="rounded-full"
+                  data-testid="action-new-chat"
+                >
+                  <Plus className="w-5 h-5" />
+                </Button>
+              </>
+            )}
             <Button
               size="icon"
               variant="ghost"
@@ -147,6 +194,15 @@ export default function Messages() {
           </div>
         </div>
       </header>
+
+      <MatrixSetup 
+        open={showMatrixSetup} 
+        onOpenChange={setShowMatrixSetup}
+        onSuccess={() => {
+          const userId = localStorage.getItem('matrix_user_id');
+          setMatrixUserId(userId);
+        }}
+      />
 
       {/* Main Tabs: Chat and Call */}
       <Tabs value={mainTab} onValueChange={setMainTab} className="max-w-2xl mx-auto">
@@ -211,76 +267,120 @@ export default function Messages() {
             </div>
 
             <TabsContent value="direct" className="mt-0">
-              <div className="divide-y divide-border/50">
-                {chats.map((chat) => (
-                  <button
-                    key={chat.id}
-                    className="w-full p-4 flex items-center gap-3 hover-elevate active-elevate-2 transition-colors"
-                    data-testid={`chat-${chat.id}`}
-                  >
-                    <div className="relative">
-                      <Avatar className="w-14 h-14 ring-2 ring-primary/20">
-                        <AvatarImage src={chat.avatarUrl} />
-                        <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-display">
-                          {chat.name.slice(0, 2)}
-                        </AvatarFallback>
-                      </Avatar>
-                      {chat.isOnline && (
-                        <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-background" />
-                      )}
+              {!matrixUserId ? (
+                <div className="text-center py-12 px-4">
+                  <MessageSquare className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="font-display font-semibold text-lg text-foreground mb-2">Connect to Matrix</h3>
+                  <p className="text-muted-foreground mb-4">Connect to Matrix to access your direct messages</p>
+                  <Button onClick={() => setShowMatrixSetup(true)} data-testid="button-setup-matrix-direct">
+                    <Plug className="w-4 h-4 mr-2" />
+                    Connect Now
+                  </Button>
+                </div>
+              ) : roomsLoading ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">Loading rooms...</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-border/50">
+                  {matrixRooms.filter(room => room.isDirect).length === 0 ? (
+                    <div className="text-center py-12 px-4">
+                      <MessageSquare className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                      <h3 className="font-display font-semibold text-lg text-foreground mb-2">No Direct Chats</h3>
+                      <p className="text-muted-foreground">Start a conversation to see it here</p>
                     </div>
-                    <div className="flex-1 text-left">
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-display font-semibold text-foreground">{chat.name}</h3>
-                          {chat.streak && chat.streak > 0 && (
-                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500">
-                              <Flame className="w-3 h-3 text-white" />
-                              <span className="text-xs font-bold text-white">{chat.streak}</span>
-                            </div>
+                  ) : (
+                    matrixRooms.filter(room => room.isDirect).map((room) => (
+                      <button
+                        key={room.roomId}
+                        className="w-full p-4 flex items-center gap-3 hover-elevate active-elevate-2 transition-colors"
+                        data-testid={`chat-${room.roomId}`}
+                      >
+                        <div className="relative">
+                          <Avatar className="w-14 h-14 ring-2 ring-primary/20">
+                            {room.avatarUrl && <AvatarImage src={room.avatarUrl} />}
+                            <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-display">
+                              {room.name.slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          {connected && (
+                            <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-background" />
                           )}
                         </div>
-                        <span className="text-xs text-muted-foreground">{chat.timestamp}</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground truncate">{chat.lastMessage}</p>
-                    </div>
-                    {chat.unreadCount > 0 && (
-                      <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                        <span className="text-xs font-bold text-primary-foreground">{chat.unreadCount}</span>
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
+                        <div className="flex-1 text-left">
+                          <div className="flex items-center justify-between mb-1">
+                            <h3 className="font-display font-semibold text-foreground">{room.name}</h3>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(room.lastActivity).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground truncate">{room.lastMessage || "No messages yet"}</p>
+                        </div>
+                        {room.unreadCount > 0 && (
+                          <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                            <span className="text-xs font-bold text-primary-foreground">{room.unreadCount}</span>
+                          </div>
+                        )}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="group" className="mt-0">
-              <div className="divide-y divide-border/50">
-                {groups.map((group) => (
-                  <button
-                    key={group.id}
-                    className="w-full p-4 flex items-center gap-3 hover-elevate active-elevate-2"
-                    data-testid={`group-${group.id}`}
-                  >
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                      <Users className="w-7 h-7 text-white" />
+              {!matrixUserId ? (
+                <div className="text-center py-12 px-4">
+                  <Users className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="font-display font-semibold text-lg text-foreground mb-2">Connect to Matrix</h3>
+                  <p className="text-muted-foreground mb-4">Connect to Matrix to access group chats</p>
+                  <Button onClick={() => setShowMatrixSetup(true)} data-testid="button-setup-matrix-group">
+                    <Plug className="w-4 h-4 mr-2" />
+                    Connect Now
+                  </Button>
+                </div>
+              ) : roomsLoading ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">Loading rooms...</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-border/50">
+                  {matrixRooms.filter(room => !room.isDirect && room.memberCount > 2).length === 0 ? (
+                    <div className="text-center py-12 px-4">
+                      <Users className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                      <h3 className="font-display font-semibold text-lg text-foreground mb-2">No Group Chats</h3>
+                      <p className="text-muted-foreground">Create or join a group to see it here</p>
                     </div>
-                    <div className="flex-1 text-left">
-                      <div className="flex items-center justify-between mb-1">
-                        <h3 className="font-display font-semibold text-foreground">{group.name}</h3>
-                        <span className="text-xs text-muted-foreground">{group.timestamp}</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground truncate">{group.lastMessage}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{group.members} members</p>
-                    </div>
-                    {group.unreadCount > 0 && (
-                      <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                        <span className="text-xs font-bold text-primary-foreground">{group.unreadCount}</span>
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
+                  ) : (
+                    matrixRooms.filter(room => !room.isDirect && room.memberCount > 2).map((room) => (
+                      <button
+                        key={room.roomId}
+                        className="w-full p-4 flex items-center gap-3 hover-elevate active-elevate-2"
+                        data-testid={`group-${room.roomId}`}
+                      >
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                          <Users className="w-7 h-7 text-white" />
+                        </div>
+                        <div className="flex-1 text-left">
+                          <div className="flex items-center justify-between mb-1">
+                            <h3 className="font-display font-semibold text-foreground">{room.name}</h3>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(room.lastActivity).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground truncate">{room.lastMessage || "No messages yet"}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{room.memberCount} members</p>
+                        </div>
+                        {room.unreadCount > 0 && (
+                          <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                            <span className="text-xs font-bold text-primary-foreground">{room.unreadCount}</span>
+                          </div>
+                        )}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="channels" className="mt-0 p-4 space-y-3">
