@@ -51,6 +51,20 @@ export const follows = pgTable("follows", {
   index("idx_following_id").on(table.followingId),
 ]);
 
+export const activityLogs = pgTable("activity_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  action: varchar("action", { length: 50 }).notNull(),
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_activity_user_id").on(table.userId),
+  index("idx_activity_action").on(table.action),
+  index("idx_activity_created_at").on(table.createdAt),
+]);
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   numericId: true,
@@ -113,6 +127,11 @@ export const insertFollowSchema = createInsertSchema(follows).omit({
   createdAt: true,
 });
 
+export const insertActivityLogSchema = createInsertSchema(activityLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpsertUser = typeof users.$inferInsert;
 export type User = Omit<typeof users.$inferSelect, 'password'>;
@@ -125,3 +144,5 @@ export type UpdateProfileData = z.infer<typeof updateProfileSchema>;
 export type SearchUsersData = z.infer<typeof searchUsersSchema>;
 export type Follow = typeof follows.$inferSelect;
 export type InsertFollow = z.infer<typeof insertFollowSchema>;
+export type ActivityLog = typeof activityLogs.$inferSelect;
+export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;

@@ -240,23 +240,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: info?.message || "Invalid credentials" });
       }
       console.log("[LOGIN] Passport authentication successful, calling req.login");
-      req.login(user, (loginErr) => {
+      req.login(user, async (loginErr) => {
         if (loginErr) {
           console.error("[LOGIN] req.login error:", loginErr);
           return res.status(500).json({ message: "Login failed" });
         }
+        
+        // Log the login activity
+        try {
+          const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() || 
+                           req.socket.remoteAddress || 
+                           'unknown';
+          const userAgent = req.headers['user-agent'] || 'unknown';
+          
+          await storage.logActivity({
+            userId: user.id,
+            action: 'login',
+            ipAddress,
+            userAgent,
+            metadata: {
+              email: user.email,
+              sessionId: req.sessionID,
+              loginMethod: 'password',
+              timestamp: new Date().toISOString()
+            }
+          });
+          console.log("[LOGIN] Activity logged for user:", user.email);
+        } catch (activityErr) {
+          console.error("[LOGIN] Failed to log activity:", activityErr);
+        }
+        
         console.log("[LOGIN] Login successful, sending user response");
         res.json(user);
       });
     })(req, res, next);
   });
 
-  app.post('/api/auth/logout', (req, res) => {
+  app.post('/api/auth/logout', async (req, res) => {
+    const user = req.user as any;
+    const userId = user?.id;
+    const userEmail = user?.email;
+    
+    console.log("[LOGOUT] Logout attempt received");
+    console.log("[LOGOUT] User ID:", userId || "No user ID");
+    console.log("[LOGOUT] User Email:", userEmail || "No email");
+    console.log("[LOGOUT] Session ID:", req.sessionID || "No session ID");
+    
+    if (!req.isAuthenticated()) {
+      console.log("[LOGOUT] User not authenticated, nothing to logout");
+      return res.json({ message: "Already logged out", redirectTo: "/auth/login" });
+    }
+    
+    // Log the logout activity before destroying session
+    if (userId) {
+      try {
+        const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() || 
+                         req.socket.remoteAddress || 
+                         'unknown';
+        const userAgent = req.headers['user-agent'] || 'unknown';
+        
+        await storage.logActivity({
+          userId,
+          action: 'logout',
+          ipAddress,
+          userAgent,
+          metadata: {
+            email: userEmail,
+            sessionId: req.sessionID,
+            timestamp: new Date().toISOString()
+          }
+        });
+        console.log("[LOGOUT] Activity logged for user:", userEmail || userId);
+      } catch (activityErr) {
+        console.error("[LOGOUT] Failed to log activity:", activityErr);
+      }
+    }
+    
     req.logout((err) => {
       if (err) {
+        console.error("[LOGOUT] Logout error:", err);
+        console.error("[LOGOUT] Error details:", err instanceof Error ? err.message : err);
         return res.status(500).json({ message: "Logout failed" });
       }
-      res.json({ message: "Logged out successfully" });
+      
+      console.log("[LOGOUT] Passport logout successful, destroying session");
+      
+      req.session.destroy((sessionErr) => {
+        if (sessionErr) {
+          console.error("[LOGOUT] Session destruction error:", sessionErr);
+          return res.status(500).json({ message: "Failed to clear session" });
+        }
+        
+        console.log("[LOGOUT] Session destroyed successfully");
+        console.log("[LOGOUT] Clearing session cookie");
+        res.clearCookie('connect.sid');
+        console.log("[LOGOUT] Logout complete for user:", userEmail || userId);
+        res.json({ 
+          message: "Logged out successfully",
+          redirectTo: "/auth/login",
+          timestamp: new Date().toISOString()
+        });
+      });
     });
   });
 

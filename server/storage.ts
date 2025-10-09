@@ -1,13 +1,16 @@
-import { eq, and, gt, or, ilike, sql as drizzleSql } from "drizzle-orm";
+import { eq, and, gt, or, ilike, sql as drizzleSql, desc } from "drizzle-orm";
 import { db } from "./db";
 import { 
   users,
   otpCodes,
   follows,
+  activityLogs,
   type User, 
   type InsertUser,
   type UpsertUser,
   type UpdateProfileData,
+  type InsertActivityLog,
+  type ActivityLog,
 } from "@shared/schema";
 
 type UserWithPassword = User & { password: string | null };
@@ -33,6 +36,8 @@ export interface IStorage {
   deleteOtpsByEmail(email: string): Promise<void>;
   verifyUserEmail(email: string): Promise<void>;
   updateUserPassword(email: string, hashedPassword: string): Promise<void>;
+  logActivity(activityData: InsertActivityLog): Promise<void>;
+  getUserActivities(userId: string, limit?: number): Promise<ActivityLog[]>;
 }
 
 export class DbStorage implements IStorage {
@@ -348,6 +353,20 @@ export class DbStorage implements IStorage {
       .from(users)
       .innerJoin(follows, eq(follows.followingId, users.id))
       .where(eq(follows.followerId, userId));
+    return result;
+  }
+
+  async logActivity(activityData: InsertActivityLog): Promise<void> {
+    await db.insert(activityLogs).values(activityData);
+  }
+
+  async getUserActivities(userId: string, limit: number = 50): Promise<ActivityLog[]> {
+    const result = await db
+      .select()
+      .from(activityLogs)
+      .where(eq(activityLogs.userId, userId))
+      .orderBy(desc(activityLogs.createdAt))
+      .limit(limit);
     return result;
   }
 }

@@ -71,8 +71,36 @@ export default function Settings() {
     updatePrivacyMutation.mutate(newValue);
   };
 
-  const handleLogout = () => {
-    window.location.href = "/api/logout";
+  const handleLogout = async () => {
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        // Clear any cached data
+        queryClient.clear();
+        // Redirect to login page
+        setLocation(data.redirectTo || "/auth/login");
+      } else {
+        toast({
+          title: "Logout failed",
+          description: data.message || "Failed to logout",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast({
+        title: "Logout failed",
+        description: "An error occurred while logging out",
+        variant: "destructive",
+      });
+    }
   };
 
   const themeOptions = [
