@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, boolean, timestamp, index, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, boolean, timestamp, index, jsonb, serial, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -15,6 +15,7 @@ export const sessions = pgTable(
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  numericId: serial("numeric_id").unique().notNull(),
   email: varchar("email").unique().notNull(),
   password: varchar("password"),
   provider: varchar("provider").default("email"),
@@ -37,18 +38,37 @@ export const otpCodes = pgTable("otp_codes", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const follows = pgTable("follows", {
+  id: serial("id").primaryKey(),
+  followerId: varchar("follower_id").notNull().references(() => users.id),
+  followingId: varchar("following_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_follower_id").on(table.followerId),
+  index("idx_following_id").on(table.followingId),
+]);
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
+  numericId: true,
   createdAt: true,
   updatedAt: true,
 });
+
+const usernameValidation = z
+  .string()
+  .min(3, "Username must be at least 3 characters")
+  .max(30, "Username cannot exceed 30 characters")
+  .regex(/^[a-zA-Z0-9.]+$/, "Username can only contain letters, numbers, and dots")
+  .regex(/^[a-zA-Z0-9]/, "Username cannot start with a dot")
+  .regex(/[a-zA-Z0-9]$/, "Username cannot end with a dot");
 
 export const signupSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   firstName: z.string().optional().transform(val => val === "" ? undefined : val),
   lastName: z.string().optional().transform(val => val === "" ? undefined : val),
-  username: z.string().optional().transform(val => val === "" ? undefined : val),
+  username: usernameValidation.optional().transform(val => val === "" ? undefined : val),
 });
 
 export const loginSchema = z.object({
@@ -71,6 +91,22 @@ export const resetPasswordSchema = z.object({
   newPassword: z.string().min(8, "Password must be at least 8 characters"),
 });
 
+export const updateProfileSchema = z.object({
+  firstName: z.string().optional().transform(val => val === "" ? undefined : val),
+  lastName: z.string().optional().transform(val => val === "" ? undefined : val),
+  username: usernameValidation.optional(),
+  profileImageUrl: z.string().optional().transform(val => val === "" ? undefined : val),
+});
+
+export const searchUsersSchema = z.object({
+  query: z.string().min(1, "Search query is required"),
+});
+
+export const insertFollowSchema = createInsertSchema(follows).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpsertUser = typeof users.$inferInsert;
 export type User = Omit<typeof users.$inferSelect, 'password'>;
@@ -79,3 +115,7 @@ export type LoginData = z.infer<typeof loginSchema>;
 export type VerifyOtpData = z.infer<typeof verifyOtpSchema>;
 export type ForgotPasswordData = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordData = z.infer<typeof resetPasswordSchema>;
+export type UpdateProfileData = z.infer<typeof updateProfileSchema>;
+export type SearchUsersData = z.infer<typeof searchUsersSchema>;
+export type Follow = typeof follows.$inferSelect;
+export type InsertFollow = z.infer<typeof insertFollowSchema>;
