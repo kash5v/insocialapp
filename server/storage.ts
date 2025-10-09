@@ -1,7 +1,8 @@
-import { eq } from "drizzle-orm";
+import { eq, and, gt } from "drizzle-orm";
 import { db } from "./db";
 import { 
   users,
+  otpCodes,
   type User, 
   type InsertUser,
   type UpsertUser,
@@ -15,6 +16,11 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<UserWithPassword>;
   upsertUser(user: UpsertUser): Promise<User>;
+  createOtp(email: string, code: string, type: string, expiresAt: Date): Promise<void>;
+  verifyOtp(email: string, code: string, type: string): Promise<boolean>;
+  deleteOtpsByEmail(email: string): Promise<void>;
+  verifyUserEmail(email: string): Promise<void>;
+  updateUserPassword(email: string, hashedPassword: string): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -27,6 +33,7 @@ export class DbStorage implements IStorage {
       profileImageUrl: users.profileImageUrl,
       username: users.username,
       isPremium: users.isPremium,
+      emailVerified: users.emailVerified,
       createdAt: users.createdAt,
       updatedAt: users.updatedAt,
       provider: users.provider,
@@ -48,6 +55,7 @@ export class DbStorage implements IStorage {
       profileImageUrl: users.profileImageUrl,
       username: users.username,
       isPremium: users.isPremium,
+      emailVerified: users.emailVerified,
       createdAt: users.createdAt,
       updatedAt: users.updatedAt,
       provider: users.provider,
@@ -79,11 +87,56 @@ export class DbStorage implements IStorage {
         profileImageUrl: users.profileImageUrl,
         username: users.username,
         isPremium: users.isPremium,
+        emailVerified: users.emailVerified,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
         provider: users.provider,
       });
     return user;
+  }
+
+  async createOtp(email: string, code: string, type: string, expiresAt: Date): Promise<void> {
+    await db.insert(otpCodes).values({
+      email,
+      code,
+      type,
+      expiresAt,
+    });
+  }
+
+  async verifyOtp(email: string, code: string, type: string): Promise<boolean> {
+    const result = await db
+      .select()
+      .from(otpCodes)
+      .where(
+        and(
+          eq(otpCodes.email, email),
+          eq(otpCodes.code, code),
+          eq(otpCodes.type, type),
+          gt(otpCodes.expiresAt, new Date())
+        )
+      )
+      .limit(1);
+
+    return result.length > 0;
+  }
+
+  async deleteOtpsByEmail(email: string): Promise<void> {
+    await db.delete(otpCodes).where(eq(otpCodes.email, email));
+  }
+
+  async verifyUserEmail(email: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ emailVerified: true })
+      .where(eq(users.email, email));
+  }
+
+  async updateUserPassword(email: string, hashedPassword: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ password: hashedPassword })
+      .where(eq(users.email, email));
   }
 }
 
