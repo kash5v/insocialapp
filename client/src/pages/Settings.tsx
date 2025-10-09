@@ -1,4 +1,4 @@
-import { ArrowLeft, LogOut, Bell, Lock, Eye, HelpCircle, Shield, Moon, Sun, Monitor, ChevronRight } from "lucide-react";
+import { ArrowLeft, LogOut, Bell, Lock, Eye, HelpCircle, Shield, Moon, Sun, Monitor, ChevronRight, User, Mail, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -7,7 +7,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import BottomNavBar from "@/components/BottomNavBar";
-import ThemeToggle from "@/components/ThemeToggle";
+import { useTheme } from "@/hooks/useTheme";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +22,7 @@ import {
 export default function Settings() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [privateAccount, setPrivateAccount] = useState(false);
@@ -30,7 +31,42 @@ export default function Settings() {
     window.location.href = "/api/logout";
   };
 
+  const themeOptions = [
+    { value: "light", label: "Light", icon: Sun },
+    { value: "dark", label: "Dark", icon: Moon },
+    { value: "system", label: "System", icon: Monitor },
+  ];
+
   const settingsSections = [
+    {
+      title: "Personal Information",
+      items: [
+        {
+          icon: Mail,
+          label: "Email",
+          description: user?.email || "Not set",
+          action: () => {},
+          hasSwitch: false,
+          type: "info" as const,
+        },
+        {
+          icon: User,
+          label: "User ID",
+          description: user?.id?.toString() || "N/A",
+          action: () => {},
+          hasSwitch: false,
+          type: "info" as const,
+        },
+        {
+          icon: Hash,
+          label: "UUID",
+          description: user?.uuid || "N/A",
+          action: () => {},
+          hasSwitch: false,
+          type: "info" as const,
+        },
+      ],
+    },
     {
       title: "Account",
       items: [
@@ -40,6 +76,7 @@ export default function Settings() {
           description: "Manage your privacy settings",
           action: () => {},
           hasSwitch: false,
+          type: "action" as const,
         },
         {
           icon: Shield,
@@ -47,6 +84,7 @@ export default function Settings() {
           description: "Password and authentication",
           action: () => {},
           hasSwitch: false,
+          type: "action" as const,
         },
         {
           icon: Eye,
@@ -55,6 +93,7 @@ export default function Settings() {
           action: () => setPrivateAccount(!privateAccount),
           hasSwitch: true,
           switchValue: privateAccount,
+          type: "action" as const,
         },
       ],
     },
@@ -68,6 +107,7 @@ export default function Settings() {
           action: () => setNotificationsEnabled(!notificationsEnabled),
           hasSwitch: true,
           switchValue: notificationsEnabled,
+          type: "action" as const,
         },
       ],
     },
@@ -80,6 +120,7 @@ export default function Settings() {
           description: "Get help and support",
           action: () => {},
           hasSwitch: false,
+          type: "action" as const,
         },
       ],
     },
@@ -101,7 +142,6 @@ export default function Settings() {
             </Button>
             <h1 className="font-display font-bold text-xl">Settings</h1>
           </div>
-          <ThemeToggle />
         </div>
       </header>
 
@@ -123,6 +163,37 @@ export default function Settings() {
           </div>
         </Card>
 
+        {/* Appearance Section */}
+        <div className="space-y-2">
+          <h2 className="text-sm font-semibold text-muted-foreground px-2">
+            Appearance
+          </h2>
+          <Card className="p-4">
+            <div className="space-y-3">
+              <p className="font-medium text-foreground">Theme</p>
+              <div className="grid grid-cols-3 gap-2">
+                {themeOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setTheme(option.value as "light" | "dark" | "system")}
+                    className={`p-3 rounded-md border-2 flex flex-col items-center gap-2 hover-elevate active-elevate-2 ${
+                      theme === option.value 
+                        ? "border-primary bg-primary/10" 
+                        : "border-border"
+                    }`}
+                    data-testid={`theme-${option.value}`}
+                  >
+                    <option.icon className={`w-5 h-5 ${theme === option.value ? "text-primary" : "text-muted-foreground"}`} />
+                    <span className={`text-sm font-medium ${theme === option.value ? "text-primary" : "text-muted-foreground"}`}>
+                      {option.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </Card>
+        </div>
+
         {/* Settings Sections */}
         {settingsSections.map((section, idx) => (
           <div key={idx} className="space-y-2">
@@ -131,10 +202,10 @@ export default function Settings() {
             </h2>
             <Card className="divide-y">
               {section.items.map((item, itemIdx) => (
-                <button
+                <div
                   key={itemIdx}
-                  onClick={item.action}
-                  className="w-full p-4 flex items-center gap-4 hover-elevate active-elevate-2 text-left"
+                  className={`w-full p-4 flex items-center gap-4 ${item.type === 'action' ? 'hover-elevate active-elevate-2 cursor-pointer' : ''}`}
+                  onClick={item.type === 'action' ? item.action : undefined}
                   data-testid={`setting-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
                 >
                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -153,10 +224,10 @@ export default function Settings() {
                       onClick={(e) => e.stopPropagation()}
                       data-testid={`switch-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
                     />
-                  ) : (
+                  ) : item.type === 'action' ? (
                     <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-                  )}
-                </button>
+                  ) : null}
+                </div>
               ))}
             </Card>
           </div>
