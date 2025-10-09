@@ -79,6 +79,7 @@ export async function setupAuth(app: Express) {
           const { password: _, ...userWithoutPassword } = user;
           return done(null, userWithoutPassword);
         } catch (error) {
+          console.error("Authentication error:", error);
           return done(error);
         }
       }

@@ -48,11 +48,11 @@ export default function Settings() {
       if (!response.ok) throw new Error("Failed to update privacy");
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, newValue) => {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       toast({
         title: "Privacy updated",
-        description: `Your account is now ${privateAccount ? 'private' : 'public'}`,
+        description: `Your account is now ${newValue ? 'private' : 'public'}`,
       });
     },
     onError: (error: Error) => {
