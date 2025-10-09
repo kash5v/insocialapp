@@ -9,20 +9,30 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearch } from "wouter";
 
 export default function VerifyEmail() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const searchParams = useSearch();
+  const emailParam = new URLSearchParams(searchParams).get("email");
   const [email, setEmail] = useState("");
 
   const form = useForm<VerifyOtpData>({
     resolver: zodResolver(verifyOtpSchema),
     defaultValues: {
-      email: "",
+      email: emailParam || "",
       code: "",
     },
   });
+
+  useEffect(() => {
+    if (emailParam) {
+      form.setValue("email", emailParam);
+      setEmail(emailParam);
+    }
+  }, [emailParam, form]);
 
   const verifyMutation = useMutation({
     mutationFn: async (data: VerifyOtpData) => {

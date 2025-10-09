@@ -27,15 +27,16 @@ export default function Signup() {
 
   const signupMutation = useMutation({
     mutationFn: async (data: SignupData) => {
-      return await apiRequest("/api/auth/signup", "POST", data);
+      const response = await apiRequest("/api/auth/signup", "POST", data);
+      return await response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
         title: "Account created",
-        description: "Welcome to INSocial Connect+!",
+        description: "Please check your email to verify your account",
       });
-      setLocation("/");
+      setLocation(`/verify-email?email=${encodeURIComponent(form.getValues("email"))}`);
     },
     onError: (error: Error) => {
       toast({

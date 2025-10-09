@@ -103,11 +103,18 @@ export default function Login() {
             </form>
           </Form>
 
-          <div className="text-center text-sm text-muted-foreground">
-            Don't have an account?{" "}
-            <Link href="/signup">
-              <span className="underline hover:text-primary cursor-pointer" data-testid="link-signup">Sign up</span>
-            </Link>
+          <div className="flex flex-col gap-2">
+            <div className="text-center text-sm text-muted-foreground">
+              <Link href="/forgot-password">
+                <span className="underline hover:text-primary cursor-pointer" data-testid="link-forgot-password">Forgot password?</span>
+              </Link>
+            </div>
+            <div className="text-center text-sm text-muted-foreground">
+              Don't have an account?{" "}
+              <Link href="/signup">
+                <span className="underline hover:text-primary cursor-pointer" data-testid="link-signup">Sign up</span>
+              </Link>
+            </div>
           </div>
         </CardContent>
       </Card>

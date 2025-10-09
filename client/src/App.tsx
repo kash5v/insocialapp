@@ -7,6 +7,9 @@ import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
+import VerifyEmail from "@/pages/VerifyEmail";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import Home from "@/pages/Home";
 import Search from "@/pages/Search";
 import Watch from "@/pages/Watch";
@@ -21,6 +24,9 @@ function Router() {
 
   return (
     <Switch>
+      <Route path="/verify-email" component={VerifyEmail} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
       {isLoading || !isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
