@@ -23,6 +23,56 @@ export interface MatrixRoomSummary {
 export class MatrixService {
   private clients: Map<string, sdk.MatrixClient> = new Map();
 
+  async autoRegister(userId: string, username: string): Promise<{ success: boolean; matrixUserId?: string; error?: string }> {
+    const homeserverUrl = "https://matrix.org";
+    const password = `${username}_${Math.random().toString(36).slice(2, 12)}`;
+    
+    try {
+      const tempClient = sdk.createClient({ baseUrl: homeserverUrl });
+      
+      const registerResponse = await tempClient.registerRequest({
+        username,
+        password,
+        auth: { type: "m.login.dummy" },
+      });
+
+      if (registerResponse.access_token) {
+        const client = sdk.createClient({
+          baseUrl: homeserverUrl,
+          accessToken: registerResponse.access_token,
+          userId: registerResponse.user_id,
+          deviceId: registerResponse.device_id || undefined,
+        });
+
+        await storage.createMatrixSession({
+          userId,
+          matrixUserId: registerResponse.user_id,
+          accessToken: registerResponse.access_token,
+          deviceId: registerResponse.device_id,
+          homeserverUrl,
+        });
+
+        this.clients.set(userId, client);
+        await client.startClient({ initialSyncLimit: 20 });
+
+        return { success: true, matrixUserId: registerResponse.user_id };
+      }
+      
+      return { success: false, error: "Registration failed: No access token received" };
+    } catch (error: any) {
+      console.error("Matrix auto-registration failed:", error);
+      
+      if (error.errcode === "M_FORBIDDEN" || error.httpStatus === 403 || error.httpStatus === 401) {
+        return { 
+          success: false, 
+          error: "Matrix.org requires additional verification. Manual Matrix setup needed." 
+        };
+      }
+      
+      return { success: false, error: `Registration failed: ${error.message}` };
+    }
+  }
+
   async login(userId: string, credentials: MatrixLoginCredentials): Promise<sdk.MatrixClient> {
     const homeserverUrl = credentials.homeserverUrl || "https://matrix.org";
     

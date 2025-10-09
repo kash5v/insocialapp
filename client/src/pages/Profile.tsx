@@ -1,14 +1,59 @@
-import { Settings, Archive, Bookmark, UserPlus, Users, Grid, Heart, Search, MapPin, Lock, Video, Share2, Crown, Camera, Tag, List, Film, Play } from "lucide-react";
+import { Settings, Archive, Bookmark, UserPlus, Users, Grid, Heart, Search, MapPin, Lock, Video, Share2, Crown, Camera, Tag, List, Film, Play, Copy, Check, LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import BottomNavBar from "@/components/BottomNavBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Profile() {
   const [, setLocation] = useLocation();
+  const { user, isLoading } = useAuth();
+  const [copiedId, setCopiedId] = useState(false);
+  const { toast } = useToast();
+
+  const copyUserId = () => {
+    if (user?.id) {
+      navigator.clipboard.writeText(user.id);
+      setCopiedId(true);
+      toast({
+        title: "User ID Copied!",
+        description: "Your unique user ID has been copied to clipboard.",
+      });
+      setTimeout(() => setCopiedId(false), 2000);
+    }
+  };
+
+  const handleLogout = () => {
+    window.location.href = "/api/logout";
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
+  const displayName = user.firstName && user.lastName 
+    ? `${user.firstName} ${user.lastName}` 
+    : user.firstName || user.email?.split('@')[0] || 'User';
+  
+  const username = user.username || user.email?.split('@')[0] || 'user';
+  const initials = (user.firstName?.[0] || '') + (user.lastName?.[0] || user.email?.[0] || 'U');
   
   const userPosts = [
     { id: 1, imageUrl: "https://images.unsplash.com/photo-1566552881560-0be862a7c445?w=400&h=400&fit=crop", likes: 1234 },
@@ -62,10 +107,15 @@ export default function Profile() {
       {/* Header */}
       <header className="sticky top-0 z-40 glass-strong border-b border-white/10 backdrop-blur-xl">
         <div className="h-14 px-4 flex items-center justify-between max-w-2xl mx-auto">
-          <h1 className="font-display font-bold text-xl gradient-text">@priya.sharma</h1>
+          <h1 className="font-display font-bold text-xl gradient-text">@{username}</h1>
           <div className="flex items-center gap-2">
-            <Button size="icon" variant="ghost" className="rounded-full" data-testid="button-settings">
-              <Settings className="w-5 h-5" />
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              onClick={handleLogout}
+              data-testid="button-logout"
+            >
+              <LogOut className="w-5 h-5" />
             </Button>
             <Button
               size="icon"
@@ -85,17 +135,31 @@ export default function Profile() {
         <div className="p-6 space-y-4">
           <div className="flex items-start gap-4">
             <Avatar className="w-24 h-24 ring-4 ring-primary/20">
-              <AvatarImage src="https://i.pravatar.cc/150?img=1" />
+              <AvatarImage src={user.profileImageUrl || undefined} />
               <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-display text-2xl">
-                PS
+                {initials}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <h2 className="font-display font-bold text-2xl text-foreground mb-1">Priya Sharma</h2>
-              <p className="text-muted-foreground mb-1">Digital Creator | Travel Enthusiast 🌏</p>
-              <div className="flex items-center gap-1 text-sm text-muted-foreground mb-3">
-                <MapPin className="w-4 h-4" />
-                <span>Mumbai, India</span>
+              <h2 className="font-display font-bold text-2xl text-foreground mb-1">{displayName}</h2>
+              <p className="text-sm text-muted-foreground mb-2">{user.email}</p>
+              
+              {/* Unique User ID Badge */}
+              <div className="mb-3">
+                <button
+                  onClick={copyUserId}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 hover-elevate active-elevate-2"
+                  data-testid="button-copy-user-id"
+                >
+                  <span className="text-xs font-mono text-primary font-semibold">
+                    ID: {user.id.slice(0, 8)}...
+                  </span>
+                  {copiedId ? (
+                    <Check className="w-3 h-3 text-primary" />
+                  ) : (
+                    <Copy className="w-3 h-3 text-primary" />
+                  )}
+                </button>
               </div>
               
               {/* Stats */}

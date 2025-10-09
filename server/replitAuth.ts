@@ -54,15 +54,45 @@ function updateUserSession(
   user.expires_at = user.claims?.exp;
 }
 
+async function generateUniqueUsername(email: string, firstName: string): Promise<string> {
+  const baseUsername = (email?.split('@')[0] || firstName?.toLowerCase().replace(/\s+/g, '') || 'user')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+  
+  let username = baseUsername;
+  let attempt = 0;
+  const maxAttempts = 100;
+  
+  while (attempt < maxAttempts) {
+    const existingUserByUsername = await storage.getUserByUsername(username);
+    if (!existingUserByUsername) {
+      return username;
+    }
+    
+    attempt++;
+    username = `${baseUsername}${attempt}`;
+  }
+  
+  return `${baseUsername}${Date.now()}`;
+}
+
 async function upsertUser(
   claims: any,
 ) {
+  const existingUser = await storage.getUser(claims["sub"]);
+  
+  const username = existingUser?.username || await generateUniqueUsername(
+    claims["email"], 
+    claims["first_name"]
+  );
+  
   await storage.upsertUser({
     id: claims["sub"],
     email: claims["email"],
     firstName: claims["first_name"],
     lastName: claims["last_name"],
     profileImageUrl: claims["profile_image_url"],
+    username,
   });
 }
 

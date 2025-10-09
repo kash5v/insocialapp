@@ -67,6 +67,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/matrix/auto-setup', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const existingSession = await storage.getMatrixSession(userId);
+      if (existingSession) {
+        return res.json({ 
+          success: true, 
+          matrixUserId: existingSession.matrixUserId,
+          message: "Matrix account already exists" 
+        });
+      }
+
+      const matrixUsername = (user.username || user.email?.split('@')[0] || `user${userId.slice(0, 8)}`)
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '');
+      
+      const result = await matrixService.autoRegister(userId, matrixUsername);
+
+      if (result.success) {
+        res.json({ 
+          success: true, 
+          matrixUserId: result.matrixUserId,
+          message: "Matrix account created successfully" 
+        });
+      } else {
+        res.json({
+          success: false,
+          error: result.error,
+          message: "Matrix auto-setup not available. Manual setup required."
+        });
+      }
+    } catch (error: any) {
+      console.error("Matrix auto-setup error:", error);
+      res.status(500).json({ 
+        success: false,
+        error: error.message,
+        message: "Matrix auto-setup failed" 
+      });
+    }
+  });
+
   app.post('/api/matrix/login', isAuthenticated, async (req, res) => {
     try {
       const { userId, username, password, homeserverUrl } = req.body;
