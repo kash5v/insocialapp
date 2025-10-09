@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Users, Video, Shield } from "lucide-react";
+import { Link } from "wouter";
 
 export default function Landing() {
   return (
@@ -12,14 +13,15 @@ export default function Landing() {
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
             India's premier social platform combining messaging, video, stories, and community features in one unified experience
           </p>
-          <Button 
-            size="lg" 
-            onClick={() => window.location.href = "/api/login"}
-            className="font-semibold"
-            data-testid="button-login"
-          >
-            Get Started
-          </Button>
+          <Link href="/login">
+            <Button 
+              size="lg" 
+              className="font-semibold"
+              data-testid="button-login"
+            >
+              Get Started
+            </Button>
+          </Link>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
