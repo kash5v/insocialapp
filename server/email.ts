@@ -39,6 +39,8 @@ async function getUncachableResendClient() {
 }
 
 export async function sendOtpEmail(email: string, code: string, type: 'verification' | 'reset') {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  
   try {
     const { client, fromEmail } = await getUncachableResendClient();
     
@@ -82,6 +84,17 @@ export async function sendOtpEmail(email: string, code: string, type: 'verificat
     return { success: true, data };
   } catch (error) {
     console.error('Email sending error:', error);
+    
+    if (isDevelopment) {
+      console.log('\n================================================');
+      console.log(`📧 EMAIL SERVICE NOT CONFIGURED - DEVELOPMENT MODE`);
+      console.log(`📬 To: ${email}`);
+      console.log(`📝 Type: ${type === 'verification' ? 'Email Verification' : 'Password Reset'}`);
+      console.log(`🔐 OTP CODE: ${code}`);
+      console.log('================================================\n');
+      return { success: true, data: null };
+    }
+    
     throw error;
   }
 }
